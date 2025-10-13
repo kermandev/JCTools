@@ -11,11 +11,7 @@ public final class CountersFactory {
     }
 
     public static FixedSizeStripedLongCounter createFixedSizeStripedCounter(int stripesCount) {
-        if (UnsafeAccess.SUPPORTS_GET_AND_ADD_LONG) {
-            return new FixedSizeStripedLongCounterV8(stripesCount);
-        } else {
-            return new FixedSizeStripedLongCounterV6(stripesCount);
-        }
+        return new FixedSizeStripedLongCounterV8(stripesCount);
     }
 
     public static FixedSizeStripedLongCounter createFixedSizeStripedCounterV6(int stripesCount) {
