@@ -117,7 +117,7 @@ public class ConcurrentAutoTable implements Serializable {
       return i;
     }
     private static boolean CAS( long[] A, int idx, long old, long nnn ) {
-      return UnsafeLongArrayAccess.casRefElement( A, rawIndex(A,idx), old, nnn );
+      return UnsafeLongArrayAccess.casLongElement( A, rawIndex(A,idx), old, nnn );
     }
 
     //volatile long _resizers;    // count of threads attempting a resize

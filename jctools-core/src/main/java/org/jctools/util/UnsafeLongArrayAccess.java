@@ -99,7 +99,7 @@ public final class UnsafeLongArrayAccess
      * @param newValue the new
      * @return true if successful
      */
-    public static boolean casRefElement(long[] buffer, long offset, long expectedValue, long newValue) {
+    public static boolean casLongElement(long[] buffer, long offset, long expectedValue, long newValue) {
         return LONG_A.compareAndSet(buffer, (int) offset, expectedValue, newValue);
     }
 

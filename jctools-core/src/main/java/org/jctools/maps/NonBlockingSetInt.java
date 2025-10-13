@@ -225,7 +225,7 @@ public class NonBlockingSetInt extends AbstractSet<Integer> implements Serializa
       return idx;
     }
     private final boolean CAS( int idx, long old, long nnn ) {
-      return UnsafeLongArrayAccess.casRefElement( _bits, rawIndex(_bits, idx), old, nnn );
+      return UnsafeLongArrayAccess.casLongElement( _bits, rawIndex(_bits, idx), old, nnn );
     }
 
     // --- Resize

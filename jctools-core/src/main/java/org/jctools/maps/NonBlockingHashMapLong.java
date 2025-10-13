@@ -487,7 +487,7 @@ public class NonBlockingHashMapLong<TypeV>
     // --- key,val -------------------------------------------------------------
     // Access K,V for a given idx
     private boolean CAS_key( int idx, long   old, long   key ) {
-      return UnsafeLongArrayAccess.casRefElement( _keys, rawIndex(_keys, idx), old, key );
+      return UnsafeLongArrayAccess.casLongElement( _keys, rawIndex(_keys, idx), old, key );
     }
     private boolean CAS_val( int idx, Object old, Object val ) {
       return UnsafeRefArrayAccess.casRefElement( _vals, rawIndex(_vals, idx), old, val );

@@ -2,9 +2,6 @@ package org.jctools.counters;
 
 import org.jctools.util.UnsafeLongArrayAccess;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-
 /**
  * Lock-free implementation of striped counter using
  * CAS primitives.
@@ -22,7 +19,7 @@ class FixedSizeStripedLongCounterV6 extends FixedSizeStripedLongCounter {
         long v;
         do {
             v = (long) UnsafeLongArrayAccess.lvLongElement(cells, offset);
-        } while (!UnsafeLongArrayAccess.casRefElement(cells, offset, v, v + delta));
+        } while (!UnsafeLongArrayAccess.casLongElement(cells, offset, v, v + delta));
     }
 
     @Override
@@ -30,7 +27,7 @@ class FixedSizeStripedLongCounterV6 extends FixedSizeStripedLongCounter {
         long v;
         do {
             v = (long) UnsafeLongArrayAccess.lvLongElement(cells, offset);
-        } while (!UnsafeLongArrayAccess.casRefElement(cells, offset, v, 0L));
+        } while (!UnsafeLongArrayAccess.casLongElement(cells, offset, v, 0L));
 
         return v;
     }
