@@ -6,6 +6,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.jctools.util.PortableJvmInfo;
 import org.jctools.util.Pow2;
+import org.jctools.util.UnsafeLongArrayAccess;
 
 /**
  * Basic class representing static striped long counter with
@@ -33,7 +34,6 @@ abstract class FixedSizeStripedLongCounterPrePad {
 }
 abstract class FixedSizeStripedLongCounterFields extends FixedSizeStripedLongCounterPrePad {
     protected static final int CACHE_LINE_IN_LONGS = PortableJvmInfo.CACHE_LINE_SIZE / Long.BYTES;
-    protected static final VarHandle LONG_A = MethodHandles.arrayElementVarHandle(long[].class);
 
     // we pad each element in the array to effectively write a counter in each cache line
     protected final long[] cells;
@@ -97,7 +97,7 @@ public abstract class FixedSizeStripedLongCounter extends FixedSizeStripedLongCo
         long[] cells = this.cells;
         int length = mask + 1;
         for (int i = 0; i < length; i++) {
-            result += (long) LONG_A.getVolatile(cells, counterOffset(i));
+            result += (long) UnsafeLongArrayAccess.lvLongElement(cells, counterOffset(i));
         }
         return result;
     }

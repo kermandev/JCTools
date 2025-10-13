@@ -14,6 +14,8 @@
 package org.jctools.maps;
 
 import org.jctools.util.RangeUtil;
+import org.jctools.util.UnsafeLongArrayAccess;
+import org.jctools.util.UnsafeRefArrayAccess;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -98,14 +100,12 @@ public class NonBlockingHashMapLong<TypeV>
   private static final int REPROBE_LIMIT=10; // Too many reprobes then force a table-resize
 
   // --- Bits to allow Unsafe access to arrays
-  private final static VarHandle OBJECT_A = MethodHandles.arrayElementVarHandle(Object[].class);
   private static long rawIndex(final Object[] ary, final int idx) {
     assert idx >= 0 && idx < ary.length;
     // Note the long-math requirement, to handle arrays of more than 2^31 bytes
     // - or 2^28 - or about 268M - 8-byte pointer elements.
     return idx;
   }
-  private final static VarHandle LONG_A = MethodHandles.arrayElementVarHandle(long[].class);
   private static long rawIndex(final long[] ary, final int idx) {
     assert idx >= 0 && idx < ary.length;
     // Note the long-math requirement, to handle arrays of more than 2^31 bytes
@@ -487,10 +487,10 @@ public class NonBlockingHashMapLong<TypeV>
     // --- key,val -------------------------------------------------------------
     // Access K,V for a given idx
     private boolean CAS_key( int idx, long   old, long   key ) {
-      return OBJECT_A.compareAndSet( _keys, rawIndex(_keys, idx), old, key );
+      return UnsafeLongArrayAccess.casRefElement( _keys, rawIndex(_keys, idx), old, key );
     }
     private boolean CAS_val( int idx, Object old, Object val ) {
-      return LONG_A.compareAndSet( _vals, rawIndex(_vals, idx), old, val );
+      return UnsafeRefArrayAccess.casRefElement( _vals, rawIndex(_vals, idx), old, val );
     }
 
     final long   [] _keys;

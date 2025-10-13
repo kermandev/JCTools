@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import org.jctools.util.RangeUtil;
+import org.jctools.util.UnsafeRefArrayAccess;
 
 /**
  * A lock-free alternate implementation of {@link java.util.concurrent.ConcurrentHashMap}
@@ -88,7 +89,6 @@ public class NonBlockingHashMap<TypeK, TypeV>
   private static final int REPROBE_LIMIT=10; // Too many reprobes then force a table-resize
 
   // --- Bits to allow Unsafe access to arrays
-  private static final VarHandle OBJECT_A = MethodHandles.arrayElementVarHandle(Object[].class);
   private static long rawIndex(final Object[] ary, final int idx) {
     assert idx >= 0 && idx < ary.length;
     // Note the long-math requirement, to handle arrays of more than 2^31 bytes
@@ -181,10 +181,10 @@ public class NonBlockingHashMap<TypeK, TypeV>
   private static final Object key(Object[] kvs,int idx) { return kvs[(idx<<1)+2]; }
   private static final Object val(Object[] kvs,int idx) { return kvs[(idx<<1)+3]; }
   private static final boolean CAS_key( Object[] kvs, int idx, Object old, Object key ) {
-    return OBJECT_A.compareAndSet( kvs, rawIndex(kvs,(idx<<1)+2), old, key );
+    return UnsafeRefArrayAccess.casRefElement( kvs, rawIndex(kvs,(idx<<1)+2), old, key );
   }
   private static final boolean CAS_val( Object[] kvs, int idx, Object old, Object val ) {
-    return OBJECT_A.compareAndSet( kvs, rawIndex(kvs,(idx<<1)+3), old, val );
+    return UnsafeRefArrayAccess.casRefElement( kvs, rawIndex(kvs,(idx<<1)+3), old, val );
   }
 
 

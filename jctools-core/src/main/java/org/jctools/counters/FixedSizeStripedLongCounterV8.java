@@ -1,7 +1,6 @@
 package org.jctools.counters;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
+import org.jctools.util.UnsafeLongArrayAccess;
 
 /**
  * Wait-free implementation of striped counter using
@@ -10,7 +9,6 @@ import java.lang.invoke.VarHandle;
  * @author Tolstopyatov Vsevolod
  */
 class FixedSizeStripedLongCounterV8 extends FixedSizeStripedLongCounter {
-    private final static VarHandle LONG_A = MethodHandles.arrayElementVarHandle(long[].class);
 
     public FixedSizeStripedLongCounterV8(int stripesCount) {
         super(stripesCount);
@@ -18,11 +16,11 @@ class FixedSizeStripedLongCounterV8 extends FixedSizeStripedLongCounter {
 
     @Override
     protected void inc(long[] cells, long offset, long delta) {
-        LONG_A.getAndAdd(cells, offset, delta);
+        UnsafeLongArrayAccess.getAndAddLongElement(cells, offset, delta);
     }
 
     @Override
     protected long getAndReset(long[] cells, long offset) {
-        return (long) LONG_A.getAndSet(cells, offset, 0L);
+        return UnsafeLongArrayAccess.getAndSetLongElement(cells, offset, 0L);
     }
 }

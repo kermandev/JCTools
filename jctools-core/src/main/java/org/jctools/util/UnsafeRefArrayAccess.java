@@ -28,9 +28,10 @@ public final class UnsafeRefArrayAccess
      * @param offset computed via {@link UnsafeRefArrayAccess#calcRefElementOffset(long)}
      * @param e      an orderly kitty
      */
-    public static <E> void spRefElement(E[] buffer, int offset, E e)
+    public static <E> void spRefElement(E[] buffer, long offset, E e)
     {
-        OBJECT_A.set(buffer, offset, e);
+        assert (int) offset == offset: "mismatch while migrating";
+        OBJECT_A.set(buffer, (int) offset, e);
     }
 
     /**
@@ -40,9 +41,10 @@ public final class UnsafeRefArrayAccess
      * @param offset computed via {@link UnsafeRefArrayAccess#calcCircularRefElementOffset}
      * @param e      an orderly kitty
      */
-    public static <E> void soRefElement(E[] buffer, int offset, E e)
+    public static <E> void soRefElement(E[] buffer, long offset, E e)
     {
-        OBJECT_A.setRelease(buffer, offset, e);
+        assert (int) offset == offset: "mismatch while migrating";
+        OBJECT_A.setRelease(buffer, (int) offset, e);
     }
 
     /**
@@ -53,9 +55,10 @@ public final class UnsafeRefArrayAccess
      * @return the element at the offset
      */
     @SuppressWarnings("unchecked")
-    public static <E> E lpRefElement(E[] buffer, int offset)
+    public static <E> E lpRefElement(E[] buffer, long offset)
     {
-        return (E) OBJECT_A.get(buffer, offset);
+        assert (int) offset == offset: "mismatch while migrating";
+        return (E) OBJECT_A.get(buffer, (int) offset);
     }
 
     /**
@@ -66,9 +69,24 @@ public final class UnsafeRefArrayAccess
      * @return the element at the offset
      */
     @SuppressWarnings("unchecked")
-    public static <E> E lvRefElement(E[] buffer, int offset)
+    public static <E> E lvRefElement(E[] buffer, long offset)
     {
-        return (E) OBJECT_A.getVolatile(buffer, offset);
+        assert (int) offset == offset: "mismatch while migrating";
+        return (E) OBJECT_A.getVolatile(buffer, (int) offset);
+    }
+
+
+    /**
+     * A compare and set of element
+     * @param buffer this.buffer
+     * @param offset computed via {@link UnsafeRefArrayAccess#calcRefElementOffset(long)}
+     * @param expectedValue the old
+     * @param newValue the new
+     * @return true if successful
+     */
+    public static <E> boolean casRefElement(E[] buffer, long offset, E expectedValue, E newValue) {
+        assert (int) offset == offset: "mismatch while migrating";
+        return OBJECT_A.compareAndSet(buffer, (int) offset, expectedValue, newValue);
     }
 
     /**
@@ -77,6 +95,7 @@ public final class UnsafeRefArrayAccess
      */
     public static int calcRefElementOffset(long index)
     {
+        assert (int) index == index: "mismatch while migrating";
         return (int) index;
     }
 
@@ -87,9 +106,10 @@ public final class UnsafeRefArrayAccess
      * @param mask (length - 1)
      * @return the offset in bytes within the circular array for a given index
      */
-    public static int calcCircularRefElementOffset(long index, long mask)
+    public static long calcCircularRefElementOffset(long index, long mask)
     {
-        return (int) (index & mask);
+        assert (int) index == index: "mismatch while migrating";
+        return (index & mask);
     }
 
     /**

@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.jctools.util.RangeUtil;
+import org.jctools.util.UnsafeLongArrayAccess;
 
 /**
  * A multi-threaded bit-vector set, implemented as an array of primitive
@@ -219,13 +220,12 @@ public class NonBlockingSetInt extends AbstractSet<Integer> implements Serializa
     // The Bits
     private final long _bits[];
     // --- Bits to allow Unsafe access to arrays
-    private static final VarHandle LONG_A  = MethodHandles.arrayElementVarHandle(long[].class);
     private static long rawIndex(final long[] ary, final int idx) {
       assert idx >= 0 && idx < ary.length;
       return idx;
     }
     private final boolean CAS( int idx, long old, long nnn ) {
-      return LONG_A.compareAndSet( _bits, rawIndex(_bits, idx), old, nnn );
+      return UnsafeLongArrayAccess.casRefElement( _bits, rawIndex(_bits, idx), old, nnn );
     }
 
     // --- Resize

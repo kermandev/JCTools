@@ -13,9 +13,9 @@
  */
 package org.jctools.maps;
 
+import org.jctools.util.UnsafeLongArrayAccess;
+
 import java.io.Serializable;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 
@@ -112,13 +112,12 @@ public class ConcurrentAutoTable implements Serializable {
   private static class CAT implements Serializable {
 
     // Unsafe crud: get a function which will CAS arrays
-    private final static VarHandle LONG_A = MethodHandles.arrayElementVarHandle(long[].class);
     private static long rawIndex(long[] ary, int i) {
       assert i >= 0 && i < ary.length;
       return i;
     }
     private static boolean CAS( long[] A, int idx, long old, long nnn ) {
-      return LONG_A.compareAndSet( A, rawIndex(A,idx), old, nnn );
+      return UnsafeLongArrayAccess.casRefElement( A, rawIndex(A,idx), old, nnn );
     }
 
     //volatile long _resizers;    // count of threads attempting a resize

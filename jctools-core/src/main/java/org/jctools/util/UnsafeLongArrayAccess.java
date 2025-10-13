@@ -30,7 +30,7 @@ public final class UnsafeLongArrayAccess
      */
     public static void spLongElement(long[] buffer, long offset, long e)
     {
-        LONG_A.set(buffer, offset, e);
+        LONG_A.set(buffer, (int) offset, e);
     }
 
     /**
@@ -42,7 +42,7 @@ public final class UnsafeLongArrayAccess
      */
     public static void soLongElement(long[] buffer, long offset, long e)
     {
-        LONG_A.setRelease(buffer, offset, e);
+        LONG_A.setRelease(buffer, (int) offset, e);
     }
 
     /**
@@ -54,7 +54,7 @@ public final class UnsafeLongArrayAccess
      */
     public static long lpLongElement(long[] buffer, long offset)
     {
-        return (long) LONG_A.get(buffer, offset);
+        return (long) LONG_A.get(buffer, (int) offset);
     }
 
     /**
@@ -66,7 +66,41 @@ public final class UnsafeLongArrayAccess
      */
     public static long lvLongElement(long[] buffer, long offset)
     {
-        return (long) LONG_A.getVolatile(buffer, offset);
+        return (long) LONG_A.getVolatile(buffer, (int) offset);
+    }
+
+    /**
+     * Get and add the delta
+     * @param buffer this.buffer
+     * @param offset computed via {@link UnsafeRefArrayAccess#calcRefElementOffset(long)}
+     * @param delta the delta to add
+     * @return the value before adding
+     */
+    public static long getAndAddLongElement(long[] buffer, long offset, long delta) {
+        return (long) LONG_A.getAndAdd(buffer, (int) offset, delta);
+    }
+
+    /**
+     * Get and add the delta
+     * @param buffer this.buffer
+     * @param offset computed via {@link UnsafeRefArrayAccess#calcRefElementOffset(long)}
+     * @param e the value to set
+     * @return the value before setting
+     */
+    public static long getAndSetLongElement(long[] buffer, long offset, long e) {
+        return (long) LONG_A.getAndSet(buffer, (int) offset, e);
+    }
+
+    /**
+     * A compare and set of element
+     * @param buffer this.buffer
+     * @param offset computed via {@link UnsafeRefArrayAccess#calcRefElementOffset(long)}
+     * @param expectedValue the old
+     * @param newValue the new
+     * @return true if successful
+     */
+    public static boolean casRefElement(long[] buffer, long offset, long expectedValue, long newValue) {
+        return LONG_A.compareAndSet(buffer, (int) offset, expectedValue, newValue);
     }
 
     /**
