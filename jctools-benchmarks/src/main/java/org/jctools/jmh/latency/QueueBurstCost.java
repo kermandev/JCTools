@@ -230,7 +230,7 @@ public class QueueBurstCost
             final long[] values = this.handledCount;
             final long offset = calcSequenceOffset(consumerId);
             final long value = UnsafeAccess.UNSAFE.getLong(values, offset);
-            UnsafeAccess.UNSAFE.putOrderedLong(values, offset, value + 1);
+            UnsafeAccess.UNSAFE.setRelease(values, offset, value + 1);
         }
     }
 

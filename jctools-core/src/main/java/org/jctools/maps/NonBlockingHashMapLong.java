@@ -17,14 +17,14 @@ import org.jctools.util.RangeUtil;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import static org.jctools.maps.NonBlockingHashMap.DUMMY_VOLATILE;
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
 
 
 /**
@@ -98,29 +98,36 @@ public class NonBlockingHashMapLong<TypeV>
   private static final int REPROBE_LIMIT=10; // Too many reprobes then force a table-resize
 
   // --- Bits to allow Unsafe access to arrays
-  private static final int _Obase  = UNSAFE.arrayBaseOffset(Object[].class);
-  private static final int _Oscale = UNSAFE.arrayIndexScale(Object[].class);
+  private final static VarHandle OBJECT_A = MethodHandles.arrayElementVarHandle(Object[].class);
   private static long rawIndex(final Object[] ary, final int idx) {
     assert idx >= 0 && idx < ary.length;
     // Note the long-math requirement, to handle arrays of more than 2^31 bytes
     // - or 2^28 - or about 268M - 8-byte pointer elements.
-    return _Obase + ((long)idx * _Oscale);
+    return idx;
   }
-  private static final int _Lbase  = UNSAFE.arrayBaseOffset(long[].class);
-  private static final int _Lscale = UNSAFE.arrayIndexScale(long[].class);
+  private final static VarHandle LONG_A = MethodHandles.arrayElementVarHandle(long[].class);
   private static long rawIndex(final long[] ary, final int idx) {
     assert idx >= 0 && idx < ary.length;
     // Note the long-math requirement, to handle arrays of more than 2^31 bytes
     // - or 2^28 - or about 268M - 8-byte pointer elements.
-    return _Lbase + ((long)idx * _Lscale);
+    return idx;
   }
 
   // --- Bits to allow Unsafe CAS'ing of the CHM field
-  private static final long _chm_offset = fieldOffset(NonBlockingHashMapLong.class, "_chm");
-  private static final long _val_1_offset = fieldOffset(NonBlockingHashMapLong.class, "_val_1");
+  private final static VarHandle _chm_offset;
+  private final static VarHandle _val_1_offset;
 
-  private final boolean CAS( final long offset, final Object old, final Object nnn ) {
-    return UNSAFE.compareAndSwapObject(this, offset, old, nnn );
+  static {
+      try {
+          _chm_offset = MethodHandles.lookup().findVarHandle(NonBlockingHashMapLong.class, "_chm", CHM.class);
+          _val_1_offset = MethodHandles.lookup().findVarHandle(NonBlockingHashMapLong.class, "_val_1", Object.class);
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+          throw new RuntimeException(e);
+      }
+  }
+
+  private final boolean CAS( VarHandle offset, final Object old, final Object nnn ) {
+    return offset.compareAndSet( this, old, nnn );
   }
 
   // --- Adding a 'prime' bit onto Values via wrapping with a junk wrapper class
@@ -480,10 +487,10 @@ public class NonBlockingHashMapLong<TypeV>
     // --- key,val -------------------------------------------------------------
     // Access K,V for a given idx
     private boolean CAS_key( int idx, long   old, long   key ) {
-      return UNSAFE.compareAndSwapLong  ( _keys, rawIndex(_keys, idx), old, key );
+      return OBJECT_A.compareAndSet( _keys, rawIndex(_keys, idx), old, key );
     }
     private boolean CAS_val( int idx, Object old, Object val ) {
-      return UNSAFE.compareAndSwapObject( _vals, rawIndex(_vals, idx), old, val );
+      return LONG_A.compareAndSet( _vals, rawIndex(_vals, idx), old, val );
     }
 
     final long   [] _keys;

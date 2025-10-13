@@ -14,6 +14,8 @@
 package org.jctools.queues.atomic;
 
 import org.jctools.util.RangeUtil;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.atomic.*;
 import org.jctools.queues.*;
 import static org.jctools.queues.atomic.AtomicQueueUtil.*;

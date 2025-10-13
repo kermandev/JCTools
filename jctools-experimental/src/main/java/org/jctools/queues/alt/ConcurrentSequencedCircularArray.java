@@ -46,7 +46,7 @@ public abstract class ConcurrentSequencedCircularArray<E> extends ConcurrentCirc
     }
 
     protected final void soSequenceElement(long offset, long e) {
-        UNSAFE.putOrderedLong(sequenceBuffer, offset, e);
+        UNSAFE.setRelease(sequenceBuffer, offset, e);
     }
 
     protected final void svSequenceElement(long offset, long e) {
@@ -66,7 +66,7 @@ public abstract class ConcurrentSequencedCircularArray<E> extends ConcurrentCirc
     }
 
     protected final void soSequence(long[] buffer, long offset, long e) {
-        UNSAFE.putOrderedLong(buffer, offset, e);
+        UNSAFE.setRelease(buffer, offset, e);
     }
 
     protected final void svSequenceElement(long[] buffer, long offset, long e) {

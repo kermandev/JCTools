@@ -15,15 +15,14 @@ package org.jctools.maps;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import org.jctools.util.RangeUtil;
-
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
 
 /**
  * A lock-free alternate implementation of {@link java.util.concurrent.ConcurrentHashMap}
@@ -89,21 +88,26 @@ public class NonBlockingHashMap<TypeK, TypeV>
   private static final int REPROBE_LIMIT=10; // Too many reprobes then force a table-resize
 
   // --- Bits to allow Unsafe access to arrays
-  private static final int _Obase  = UNSAFE.arrayBaseOffset(Object[].class);
-  private static final int _Oscale = UNSAFE.arrayIndexScale(Object[].class);
-  private static final int _Olog   = _Oscale==4?2:(_Oscale==8?3:9999);
+  private static final VarHandle OBJECT_A = MethodHandles.arrayElementVarHandle(Object[].class);
   private static long rawIndex(final Object[] ary, final int idx) {
     assert idx >= 0 && idx < ary.length;
     // Note the long-math requirement, to handle arrays of more than 2^31 bytes
     // - or 2^28 - or about 268M - 8-byte pointer elements.
-    return _Obase + ((long)idx << _Olog);
+    return idx;
   }
 
   // --- Setup to use Unsafe
-  private static final long _kvs_offset = fieldOffset(NonBlockingHashMap.class, "_kvs");
+  private static final VarHandle _kvs_offset;
+  static {
+      try {
+          _kvs_offset = MethodHandles.lookup().findVarHandle(NonBlockingHashMap.class, "_kvs", Object[].class);
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+          throw new RuntimeException(e);
+      }
+  }
 
   private final boolean CAS_kvs( final Object[] oldkvs, final Object[] newkvs ) {
-    return UNSAFE.compareAndSwapObject(this, _kvs_offset, oldkvs, newkvs );
+    return _kvs_offset.compareAndSet(this, oldkvs, newkvs );
   }
 
   // --- Adding a 'prime' bit onto Values via wrapping with a junk wrapper class
@@ -177,10 +181,10 @@ public class NonBlockingHashMap<TypeK, TypeV>
   private static final Object key(Object[] kvs,int idx) { return kvs[(idx<<1)+2]; }
   private static final Object val(Object[] kvs,int idx) { return kvs[(idx<<1)+3]; }
   private static final boolean CAS_key( Object[] kvs, int idx, Object old, Object key ) {
-    return UNSAFE.compareAndSwapObject( kvs, rawIndex(kvs,(idx<<1)+2), old, key );
+    return OBJECT_A.compareAndSet( kvs, rawIndex(kvs,(idx<<1)+2), old, key );
   }
   private static final boolean CAS_val( Object[] kvs, int idx, Object old, Object val ) {
-    return UNSAFE.compareAndSwapObject( kvs, rawIndex(kvs,(idx<<1)+3), old, val );
+    return OBJECT_A.compareAndSet( kvs, rawIndex(kvs,(idx<<1)+3), old, val );
   }
 
 

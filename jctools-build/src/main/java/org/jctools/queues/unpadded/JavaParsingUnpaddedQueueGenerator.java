@@ -88,10 +88,10 @@ public class JavaParsingUnpaddedQueueGenerator extends VoidVisitorAdapter<Void> 
     public void visit(MethodCallExpr n, Void arg)
     {
         super.visit(n, arg);
-        if (!n.getName().getIdentifier().equals("fieldOffset")) {
+        if (!n.getName().getIdentifier().equals("findVarHandle")) {
             return;
         }
-        for (Expression argument : n.getArguments())
+        Expression argument = n.getArgument(0); // findVarHandle(class, field_name, type_class)
         {
             if (argument.isClassExpr()) {
                 ClassExpr classExpr = argument.asClassExpr();

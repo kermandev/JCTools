@@ -13,8 +13,9 @@
  */
 package org.jctools.queues;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
 import static org.jctools.util.UnsafeRefArrayAccess.*;
 
 abstract class SpmcArrayQueueL1Pad<E> extends ConcurrentCircularArrayQueue<E>
@@ -45,7 +46,15 @@ abstract class SpmcArrayQueueL1Pad<E> extends ConcurrentCircularArrayQueue<E>
 //$gen:ordered-fields
 abstract class SpmcArrayQueueProducerIndexField<E> extends SpmcArrayQueueL1Pad<E>
 {
-    protected final static long P_INDEX_OFFSET = fieldOffset(SpmcArrayQueueProducerIndexField.class,"producerIndex");
+    private final static VarHandle P_INDEX_OFFSET;
+
+    static {
+        try {
+            P_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(SpmcArrayQueueProducerIndexField.class,"producerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long producerIndex;
 
@@ -62,12 +71,12 @@ abstract class SpmcArrayQueueProducerIndexField<E> extends SpmcArrayQueueL1Pad<E
 
     final long lpProducerIndex()
     {
-        return UNSAFE.getLong(this, P_INDEX_OFFSET);
+        return (long) P_INDEX_OFFSET.get(this);
     }
 
     final void soProducerIndex(long newValue)
     {
-        UNSAFE.putOrderedLong(this, P_INDEX_OFFSET, newValue);
+        P_INDEX_OFFSET.setRelease(this, newValue);
     }
 
 }
@@ -100,7 +109,15 @@ abstract class SpmcArrayQueueL2Pad<E> extends SpmcArrayQueueProducerIndexField<E
 //$gen:ordered-fields
 abstract class SpmcArrayQueueConsumerIndexField<E> extends SpmcArrayQueueL2Pad<E>
 {
-    protected final static long C_INDEX_OFFSET = fieldOffset(SpmcArrayQueueConsumerIndexField.class, "consumerIndex");
+    private final static VarHandle C_INDEX_OFFSET;
+
+    static {
+        try {
+            C_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(SpmcArrayQueueConsumerIndexField.class, "consumerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long consumerIndex;
 
@@ -117,7 +134,7 @@ abstract class SpmcArrayQueueConsumerIndexField<E> extends SpmcArrayQueueL2Pad<E
 
     final boolean casConsumerIndex(long expect, long newValue)
     {
-        return UNSAFE.compareAndSwapLong(this, C_INDEX_OFFSET, expect, newValue);
+        return C_INDEX_OFFSET.compareAndSet(this, expect, newValue);
     }
 }
 

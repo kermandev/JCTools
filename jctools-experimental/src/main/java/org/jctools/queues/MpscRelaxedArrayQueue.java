@@ -75,7 +75,7 @@ abstract class MpscRelaxedArrayQueueActiveCycleIdField<E> extends MpscRelaxedArr
 
     public final void soActiveCycleId(long value)
     {
-        UNSAFE.putOrderedLong(this, ACTIVE_CYCLE_ID_OFFSET, value);
+        UNSAFE.setRelease(this, ACTIVE_CYCLE_ID_OFFSET, value);
     }
 
 }
@@ -113,7 +113,7 @@ abstract class MpscRelaxedArrayQueueProducerLimitField<E> extends MpscRelaxedArr
 
     protected final void soProducerLimit(long newValue)
     {
-        UNSAFE.putOrderedLong(this, P_LIMIT_OFFSET, newValue);
+        UNSAFE.setRelease(this, P_LIMIT_OFFSET, newValue);
     }
 }
 
@@ -155,7 +155,7 @@ abstract class MpscRelaxedArrayQueueConsumerPositionField<E> extends MpscRelaxed
 
     protected void soConsumerPosition(long newValue)
     {
-        UNSAFE.putOrderedLong(this, C_POS_OFFSET, newValue);
+        UNSAFE.setRelease(this, C_POS_OFFSET, newValue);
     }
 }
 
@@ -211,7 +211,7 @@ abstract class MpscRelaxedArrayQueueProducerCycleClaimFields<E> extends MpscRela
 
     protected final void soProducerCycleClaim(int cycleIndex, long value)
     {
-        UNSAFE.putOrderedLong(this, calcProducerCycleClaimOffset(cycleIndex), value);
+        UNSAFE.setRelease(this, calcProducerCycleClaimOffset(cycleIndex), value);
     }
 
     protected final long getAndIncrementProducerCycleClaim(int cycleIndex)

@@ -83,7 +83,7 @@ final class Producer<E> extends ProducerFields<E> implements ConcurrentQueueProd
     }
 
     private void soProducerIndex(long newHead) {
-        UNSAFE.putOrderedLong(this, TAIL_OFFSET, newHead);
+        UNSAFE.setRelease(this, TAIL_OFFSET, newHead);
     }
 
     @Override
@@ -185,7 +185,7 @@ final class Consumer<E> extends ConsumerFields<E> implements ConcurrentQueueCons
     }
 
     private void soHead(long newHead) {
-        UNSAFE.putOrderedLong(this, HEAD_OFFSET, newHead);
+        UNSAFE.setRelease(this, HEAD_OFFSET, newHead);
     }
 
     @Override

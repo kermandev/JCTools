@@ -13,11 +13,10 @@
  */
 package org.jctools.util;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.function.LongBinaryOperator;
 import java.util.function.LongUnaryOperator;
-
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
 
 abstract class PaddedAtomicLongL1Pad extends Number implements java.io.Serializable {
     private static final long serialVersionUID = 1;
@@ -41,14 +40,23 @@ abstract class PaddedAtomicLongL1Pad extends Number implements java.io.Serializa
 }
 
 abstract class PaddedAtomicLongL1Field extends PaddedAtomicLongL1Pad {
-    private final static long VALUE_OFFSET = fieldOffset(PaddedAtomicLongL1Field.class, "value");
+    private final static VarHandle VALUE;
+
+    static {
+        try {
+            VALUE = MethodHandles.lookup().findVarHandle(PaddedAtomicLongL1Field.class, "value", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private volatile long value;
 
     public void spVal(long v) {
-        UNSAFE.putLong(this, VALUE_OFFSET, v);
+        VALUE.set(this, v);
     }
     public void soVal(long v) {
-        UNSAFE.putOrderedLong(this, VALUE_OFFSET, v);
+        VALUE.setRelease(this, v);
     }
 
     public void svVal(long v) {
@@ -59,37 +67,19 @@ abstract class PaddedAtomicLongL1Field extends PaddedAtomicLongL1Pad {
         return value;
     }
     public long lpVal() {
-        return UNSAFE.getLong(this, VALUE_OFFSET);
+        return (long) VALUE.get(this);
     }
 
     public boolean casVal(long expectedV, long newV) {
-        return UNSAFE.compareAndSwapLong(this, VALUE_OFFSET, expectedV, newV);
+        return VALUE.compareAndSet(this, expectedV, newV);
     }
 
     public long getAndSetVal(long v) {
-        if (UnsafeAccess.SUPPORTS_GET_AND_ADD_LONG) {
-            return UNSAFE.getAndSetLong(this, VALUE_OFFSET, v);
-        }
-        else {
-            long currV;
-            do {
-                currV = lvVal();
-            } while (!casVal(currV, v));
-            return currV;
-        }
+        return (long) VALUE.getAndSet(this, v);
     }
 
     public long getAndAddVal(long delta) {
-        if (UnsafeAccess.SUPPORTS_GET_AND_ADD_LONG) {
-            return UNSAFE.getAndAddLong(this, VALUE_OFFSET, delta);
-        }
-        else {
-            long currV;
-            do {
-                currV = lvVal();
-            } while (!casVal(currV, currV + delta));
-            return currV;
-        }
+        return (long) VALUE.getAndAdd(this, delta);
     }
 }
 

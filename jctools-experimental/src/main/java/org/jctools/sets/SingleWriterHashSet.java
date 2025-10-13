@@ -159,7 +159,7 @@ public class SingleWriterHashSet<E> extends AbstractSet<E> {
         removeHashIndex = (int) (removeHashIndex & mask);
         int j = removeHashIndex;
         // every compaction is guarded by two mod count increments: one before and one after actual compaction
-        UNSAFE.putOrderedLong(this, MC_OFFSET, modCount + 1);
+        UNSAFE.setRelease(this, MC_OFFSET, modCount + 1);
         while (true) {
             int k;
             E slotJ;
@@ -172,7 +172,7 @@ public class SingleWriterHashSet<E> extends AbstractSet<E> {
                 if (slotJ == null) {
                     // delete last duplicate slot
                     soRefElement(buffer, calcCircularRefElementOffset(removeHashIndex, mask), null);
-                    UNSAFE.putOrderedLong(this, MC_OFFSET, modCount + 1);
+                    UNSAFE.setRelease(this, MC_OFFSET, modCount + 1);
                     return;
                 }
 
@@ -311,7 +311,7 @@ public class SingleWriterHashSet<E> extends AbstractSet<E> {
     private final static long MC_OFFSET = fieldOffset(SingleWriterHashSet.class, "modCount");
 
     private void soBuffer(final E[] buffer) {
-        UNSAFE.putOrderedObject(this, BUFFER_OFFSET, buffer);
+        UNSAFE.setRelease(this, BUFFER_OFFSET, buffer);
     }
 
     @SuppressWarnings("unchecked")

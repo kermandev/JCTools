@@ -12,12 +12,11 @@
  * limitations under the License.
  */
 package org.jctools.maps;
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.lang.reflect.Field;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -51,10 +50,18 @@ public class NonBlockingSetInt extends AbstractSet<Integer> implements Serializa
   private static final long serialVersionUID = 1234123412341234123L;
 
   // --- Bits to allow atomic update of the NBSI
-  private static final long _nbsi_offset = fieldOffset(NonBlockingSetInt.class, "_nbsi");
+  private static final VarHandle _nbsi_offset;
+
+  static {
+      try {
+          _nbsi_offset = MethodHandles.lookup().findVarHandle(NonBlockingSetInt.class, "_nbsi", NBSI.class);
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+          throw new RuntimeException(e);
+      }
+  }
 
   private final boolean CAS_nbsi( NBSI old, NBSI nnn ) {
-    return UNSAFE.compareAndSwapObject(this, _nbsi_offset, old, nnn );
+    return _nbsi_offset.compareAndSet(this, old, nnn );
   }
 
   // The actual Set of Joy, which changes during a resize event.  The
@@ -212,24 +219,31 @@ public class NonBlockingSetInt extends AbstractSet<Integer> implements Serializa
     // The Bits
     private final long _bits[];
     // --- Bits to allow Unsafe access to arrays
-    private static final int _Lbase  = UNSAFE.arrayBaseOffset(long[].class);
-    private static final int _Lscale = UNSAFE.arrayIndexScale(long[].class);
+    private static final VarHandle LONG_A  = MethodHandles.arrayElementVarHandle(long[].class);
     private static long rawIndex(final long[] ary, final int idx) {
       assert idx >= 0 && idx < ary.length;
-      return _Lbase + (idx * (long)_Lscale);
+      return idx;
     }
     private final boolean CAS( int idx, long old, long nnn ) {
-      return UNSAFE.compareAndSwapLong( _bits, rawIndex(_bits, idx), old, nnn );
+      return LONG_A.compareAndSet( _bits, rawIndex(_bits, idx), old, nnn );
     }
 
     // --- Resize
     // The New Table, only set once to non-zero during a resize.
     // Must be atomically set.
     private NBSI _new;
-    private static final long _new_offset = fieldOffset(NBSI.class, "_new");
+    private static final VarHandle _new_offset;
+
+    static {
+        try {
+            _new_offset = MethodHandles.lookup().findVarHandle(NBSI.class, "_new", NBSI.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private final boolean CAS_new( NBSI nnn ) {
-      return UNSAFE.compareAndSwapObject(this, _new_offset, null, nnn );
+      return _new_offset.compareAndSet(this, null, nnn );
     }
 
     private transient final AtomicInteger _copyIdx;   // Used to count bits started copying

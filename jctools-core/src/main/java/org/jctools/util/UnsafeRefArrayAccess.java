@@ -13,31 +13,13 @@
  */
 package org.jctools.util;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 @InternalAPI
 public final class UnsafeRefArrayAccess
 {
-    public static final long REF_ARRAY_BASE;
-    public static final int REF_ELEMENT_SHIFT;
-
-    static
-    {
-        final int scale = UnsafeAccess.UNSAFE.arrayIndexScale(Object[].class);
-        if (4 == scale)
-        {
-            REF_ELEMENT_SHIFT = 2;
-        }
-        else if (8 == scale)
-        {
-            REF_ELEMENT_SHIFT = 3;
-        }
-        else
-        {
-            throw new IllegalStateException("Unknown pointer size: " + scale);
-        }
-        REF_ARRAY_BASE = UnsafeAccess.UNSAFE.arrayBaseOffset(Object[].class);
-    }
+    private final static VarHandle OBJECT_A = MethodHandles.arrayElementVarHandle(Object[].class);
 
     /**
      * A plain store (no ordering/fences) of an element to a given offset
@@ -46,9 +28,9 @@ public final class UnsafeRefArrayAccess
      * @param offset computed via {@link UnsafeRefArrayAccess#calcRefElementOffset(long)}
      * @param e      an orderly kitty
      */
-    public static <E> void spRefElement(E[] buffer, long offset, E e)
+    public static <E> void spRefElement(E[] buffer, int offset, E e)
     {
-        UNSAFE.putObject(buffer, offset, e);
+        OBJECT_A.set(buffer, offset, e);
     }
 
     /**
@@ -58,9 +40,9 @@ public final class UnsafeRefArrayAccess
      * @param offset computed via {@link UnsafeRefArrayAccess#calcCircularRefElementOffset}
      * @param e      an orderly kitty
      */
-    public static <E> void soRefElement(E[] buffer, long offset, E e)
+    public static <E> void soRefElement(E[] buffer, int offset, E e)
     {
-        UNSAFE.putOrderedObject(buffer, offset, e);
+        OBJECT_A.setRelease(buffer, offset, e);
     }
 
     /**
@@ -71,9 +53,9 @@ public final class UnsafeRefArrayAccess
      * @return the element at the offset
      */
     @SuppressWarnings("unchecked")
-    public static <E> E lpRefElement(E[] buffer, long offset)
+    public static <E> E lpRefElement(E[] buffer, int offset)
     {
-        return (E) UNSAFE.getObject(buffer, offset);
+        return (E) OBJECT_A.get(buffer, offset);
     }
 
     /**
@@ -84,18 +66,18 @@ public final class UnsafeRefArrayAccess
      * @return the element at the offset
      */
     @SuppressWarnings("unchecked")
-    public static <E> E lvRefElement(E[] buffer, long offset)
+    public static <E> E lvRefElement(E[] buffer, int offset)
     {
-        return (E) UNSAFE.getObjectVolatile(buffer, offset);
+        return (E) OBJECT_A.getVolatile(buffer, offset);
     }
 
     /**
      * @param index desirable element index
      * @return the offset in bytes within the array for a given index
      */
-    public static long calcRefElementOffset(long index)
+    public static int calcRefElementOffset(long index)
     {
-        return REF_ARRAY_BASE + (index << REF_ELEMENT_SHIFT);
+        return (int) index;
     }
 
     /**
@@ -105,9 +87,9 @@ public final class UnsafeRefArrayAccess
      * @param mask (length - 1)
      * @return the offset in bytes within the circular array for a given index
      */
-    public static long calcCircularRefElementOffset(long index, long mask)
+    public static int calcCircularRefElementOffset(long index, long mask)
     {
-        return REF_ARRAY_BASE + ((index & mask) << REF_ELEMENT_SHIFT);
+        return (int) (index & mask);
     }
 
     /**

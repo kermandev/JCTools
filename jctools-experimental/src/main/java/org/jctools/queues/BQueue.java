@@ -163,7 +163,7 @@ public final class BQueue<E> extends BQueueL3Pad<E> implements Queue<E> {
             }
             batchTail = tail + OFFER_BATCH_SIZE;
         }
-        UNSAFE.putOrderedObject(buffer, offset(tail), e);
+        UNSAFE.setRelease(buffer, offset(tail), e);
         tail++;
 
         return true;
@@ -178,7 +178,7 @@ public final class BQueue<E> extends BQueueL3Pad<E> implements Queue<E> {
         final long offset = offset(head);
         @SuppressWarnings("unchecked")
         final E e = (E) UNSAFE.getObject(buffer, offset);
-        UNSAFE.putOrderedObject(buffer, offset, null);
+        UNSAFE.setRelease(buffer, offset, null);
         head++;
         return e;
     }

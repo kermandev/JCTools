@@ -15,12 +15,12 @@ package org.jctools.queues.unpadded;
 
 import org.jctools.queues.IndexedQueueSizeUtil.IndexedQueue;
 import org.jctools.util.PortableJvmInfo;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.AbstractQueue;
 import java.util.Iterator;
 import static org.jctools.queues.LinkedArrayQueueUtil.length;
 import static org.jctools.queues.LinkedArrayQueueUtil.nextArrayOffset;
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
 import static org.jctools.util.UnsafeRefArrayAccess.*;
 import org.jctools.queues.*;
 
@@ -48,7 +48,15 @@ abstract class BaseSpscLinkedUnpaddedArrayQueueConsumerColdFields<E> extends Bas
  */
 abstract class BaseSpscLinkedUnpaddedArrayQueueConsumerField<E> extends BaseSpscLinkedUnpaddedArrayQueueConsumerColdFields<E> {
 
-    private final static long C_INDEX_OFFSET = fieldOffset(BaseSpscLinkedUnpaddedArrayQueueConsumerField.class, "consumerIndex");
+    private final static VarHandle C_INDEX;
+
+    static {
+        try {
+            C_INDEX = MethodHandles.lookup().findVarHandle(BaseSpscLinkedUnpaddedArrayQueueConsumerField.class, "consumerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long consumerIndex;
 
@@ -58,11 +66,11 @@ abstract class BaseSpscLinkedUnpaddedArrayQueueConsumerField<E> extends BaseSpsc
     }
 
     final long lpConsumerIndex() {
-        return UNSAFE.getLong(this, C_INDEX_OFFSET);
+        return (long) C_INDEX.get(this);
     }
 
     final void soConsumerIndex(long newValue) {
-        UNSAFE.putOrderedLong(this, C_INDEX_OFFSET, newValue);
+        C_INDEX.set(this, newValue);
     }
 }
 
@@ -79,7 +87,15 @@ abstract class BaseSpscLinkedUnpaddedArrayQueueL2Pad<E> extends BaseSpscLinkedUn
  */
 abstract class BaseSpscLinkedUnpaddedArrayQueueProducerFields<E> extends BaseSpscLinkedUnpaddedArrayQueueL2Pad<E> {
 
-    private final static long P_INDEX_OFFSET = fieldOffset(BaseSpscLinkedUnpaddedArrayQueueProducerFields.class, "producerIndex");
+    private final static VarHandle P_INDEX;
+
+    static {
+        try {
+            P_INDEX = MethodHandles.lookup().findVarHandle(BaseSpscLinkedUnpaddedArrayQueueProducerFields.class, "producerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long producerIndex;
 
@@ -89,11 +105,11 @@ abstract class BaseSpscLinkedUnpaddedArrayQueueProducerFields<E> extends BaseSps
     }
 
     final void soProducerIndex(long newValue) {
-        UNSAFE.putOrderedLong(this, P_INDEX_OFFSET, newValue);
+        P_INDEX.setRelease(this, newValue);
     }
 
     final long lpProducerIndex() {
-        return UNSAFE.getLong(this, P_INDEX_OFFSET);
+        return (long) P_INDEX.get(this);
     }
 }
 

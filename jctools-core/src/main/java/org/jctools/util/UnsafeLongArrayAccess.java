@@ -13,27 +13,13 @@
  */
 package org.jctools.util;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 @InternalAPI
 public final class UnsafeLongArrayAccess
 {
-    public static final long LONG_ARRAY_BASE;
-    public static final int LONG_ELEMENT_SHIFT;
-
-    static
-    {
-        final int scale = UnsafeAccess.UNSAFE.arrayIndexScale(long[].class);
-        if (8 == scale)
-        {
-            LONG_ELEMENT_SHIFT = 3;
-        }
-        else
-        {
-            throw new IllegalStateException("Unknown pointer size: " + scale);
-        }
-        LONG_ARRAY_BASE = UnsafeAccess.UNSAFE.arrayBaseOffset(long[].class);
-    }
+    private static final VarHandle LONG_A = MethodHandles.arrayElementVarHandle(long[].class);
 
     /**
      * A plain store (no ordering/fences) of an element to a given offset
@@ -44,7 +30,7 @@ public final class UnsafeLongArrayAccess
      */
     public static void spLongElement(long[] buffer, long offset, long e)
     {
-        UNSAFE.putLong(buffer, offset, e);
+        LONG_A.set(buffer, offset, e);
     }
 
     /**
@@ -56,7 +42,7 @@ public final class UnsafeLongArrayAccess
      */
     public static void soLongElement(long[] buffer, long offset, long e)
     {
-        UNSAFE.putOrderedLong(buffer, offset, e);
+        LONG_A.setRelease(buffer, offset, e);
     }
 
     /**
@@ -68,7 +54,7 @@ public final class UnsafeLongArrayAccess
      */
     public static long lpLongElement(long[] buffer, long offset)
     {
-        return UNSAFE.getLong(buffer, offset);
+        return (long) LONG_A.get(buffer, offset);
     }
 
     /**
@@ -80,7 +66,7 @@ public final class UnsafeLongArrayAccess
      */
     public static long lvLongElement(long[] buffer, long offset)
     {
-        return UNSAFE.getLongVolatile(buffer, offset);
+        return (long) LONG_A.getVolatile(buffer, offset);
     }
 
     /**
@@ -89,7 +75,7 @@ public final class UnsafeLongArrayAccess
      */
     public static long calcLongElementOffset(long index)
     {
-        return LONG_ARRAY_BASE + (index << LONG_ELEMENT_SHIFT);
+        return index;
     }
 
     /**
@@ -99,9 +85,8 @@ public final class UnsafeLongArrayAccess
      * @param mask (length - 1)
      * @return the offset in bytes within the circular array for a given index
      */
-    public static long calcCircularLongElementOffset(long index, long mask)
-    {
-        return LONG_ARRAY_BASE + ((index & mask) << LONG_ELEMENT_SHIFT);
+    public static long calcCircularLongElementOffset(long index, long mask) {
+        return (index & mask);
     }
 
     /**

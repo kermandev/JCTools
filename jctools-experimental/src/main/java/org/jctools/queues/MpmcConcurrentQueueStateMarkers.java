@@ -93,7 +93,7 @@ abstract class MpmcConcurrentQueueSMBuffer<E> extends MpmcConcurrentQueueSMBuffe
         UNSAFE.putObject(buffer, offset, e);
     }
     protected final void soElement(E[] buffer, long offset, Object e) {
-        UNSAFE.putOrderedObject(buffer, offset, e);
+        UNSAFE.setRelease(buffer, offset, e);
     }
 
     protected final void svElement(E[] buffer, long offset, Object e) {

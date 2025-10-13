@@ -2,18 +2,28 @@ package org.jctools.queues;
 
 import org.jctools.util.InternalAPI;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
 import static org.jctools.util.UnsafeRefArrayAccess.*;
 
 @InternalAPI
-public class MpUnboundedXaddChunk<R,E>
-{
+public class MpUnboundedXaddChunk<R, E> {
     public final static int NOT_USED = -1;
 
-    private static final long PREV_OFFSET = fieldOffset(MpUnboundedXaddChunk.class, "prev");
-    private static final long NEXT_OFFSET = fieldOffset(MpUnboundedXaddChunk.class, "next");
-    private static final long INDEX_OFFSET = fieldOffset(MpUnboundedXaddChunk.class, "index");
+    private final static VarHandle PREV_OFFSET;
+    private final static VarHandle NEXT_OFFSET;
+    private final static VarHandle INDEX_OFFSET;
+
+    static {
+        try {
+            PREV_OFFSET = MethodHandles.lookup().findVarHandle(MpUnboundedXaddChunk.class, "prev", Object.class);
+            NEXT_OFFSET = MethodHandles.lookup().findVarHandle(MpUnboundedXaddChunk.class, "next", Object.class);
+            INDEX_OFFSET = MethodHandles.lookup().findVarHandle(MpUnboundedXaddChunk.class, "index", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private final boolean pooled;
     private final E[] buffer;
@@ -42,12 +52,12 @@ public class MpUnboundedXaddChunk<R,E>
 
     public final void soIndex(long index)
     {
-        UNSAFE.putOrderedLong(this, INDEX_OFFSET, index);
+        INDEX_OFFSET.setRelease(this, index);
     }
 
     final void spIndex(long index)
     {
-        UNSAFE.putLong(this, INDEX_OFFSET, index);
+        INDEX_OFFSET.set(this, index);
     }
 
     public final R lvNext()
@@ -57,7 +67,7 @@ public class MpUnboundedXaddChunk<R,E>
 
     public final void soNext(R value)
     {
-        UNSAFE.putOrderedObject(this, NEXT_OFFSET, value);
+        NEXT_OFFSET.setRelease(this, value);
     }
 
     public final R lvPrev()
@@ -67,7 +77,7 @@ public class MpUnboundedXaddChunk<R,E>
 
     public final void soPrev(R value)
     {
-        UNSAFE.putObject(this, PREV_OFFSET, value);
+        PREV_OFFSET.set(this, value);
     }
 
     public final void soElement(int index, E e)

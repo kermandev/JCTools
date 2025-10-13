@@ -13,6 +13,8 @@
  */
 package org.jctools.queues;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.AbstractQueue;
 import java.util.Collection;
 import java.util.Iterator;
@@ -25,8 +27,6 @@ import org.jctools.util.Pow2;
 import org.jctools.util.RangeUtil;
 
 import static org.jctools.queues.LinkedArrayQueueUtil.modifiedCalcCircularRefElementOffset;
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
 import static org.jctools.util.UnsafeRefArrayAccess.*;
 
 @SuppressWarnings("unused")
@@ -52,7 +52,15 @@ abstract class MpscBlockingConsumerArrayQueuePad1<E> extends AbstractQueue<E> im
 // $gen:ordered-fields
 abstract class MpscBlockingConsumerArrayQueueColdProducerFields<E> extends MpscBlockingConsumerArrayQueuePad1<E>
 {
-    private final static long P_LIMIT_OFFSET = fieldOffset(MpscBlockingConsumerArrayQueueColdProducerFields.class,"producerLimit");
+    private final static VarHandle P_LIMIT_OFFSET;
+
+    static {
+        try {
+            P_LIMIT_OFFSET = MethodHandles.lookup().findVarHandle(MpscBlockingConsumerArrayQueueColdProducerFields.class,"producerLimit", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long producerLimit;
     protected final long producerMask;
@@ -71,12 +79,12 @@ abstract class MpscBlockingConsumerArrayQueueColdProducerFields<E> extends MpscB
 
     final boolean casProducerLimit(long expect, long newValue)
     {
-        return UNSAFE.compareAndSwapLong(this, P_LIMIT_OFFSET, expect, newValue);
+        return P_LIMIT_OFFSET.compareAndSet(this, expect, newValue);
     }
 
     final void soProducerLimit(long newValue)
     {
-        UNSAFE.putOrderedLong(this, P_LIMIT_OFFSET, newValue);
+        P_LIMIT_OFFSET.setRelease(this, newValue);
     }
 }
 
@@ -101,7 +109,15 @@ abstract class MpscBlockingConsumerArrayQueuePad2<E> extends MpscBlockingConsume
 // $gen:ordered-fields
 abstract class MpscBlockingConsumerArrayQueueProducerFields<E> extends MpscBlockingConsumerArrayQueuePad2<E>
 {
-    private final static long P_INDEX_OFFSET = fieldOffset(MpscBlockingConsumerArrayQueueProducerFields.class, "producerIndex");
+    private final static VarHandle P_LIMIT_OFFSET;
+
+    static {
+        try {
+            P_LIMIT_OFFSET = MethodHandles.lookup().findVarHandle(MpscBlockingConsumerArrayQueueColdProducerFields.class,"producerLimit", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long producerIndex;
 
@@ -118,12 +134,12 @@ abstract class MpscBlockingConsumerArrayQueueProducerFields<E> extends MpscBlock
 
     final void soProducerIndex(long newValue)
     {
-        UNSAFE.putOrderedLong(this, P_INDEX_OFFSET, newValue);
+        P_LIMIT_OFFSET.setRelease(this, newValue);
     }
 
     final boolean casProducerIndex(long expect, long newValue)
     {
-        return UNSAFE.compareAndSwapLong(this, P_INDEX_OFFSET, expect, newValue);
+        return P_LIMIT_OFFSET.compareAndSet(this, expect, newValue);
     }
 }
 
@@ -156,8 +172,17 @@ abstract class MpscBlockingConsumerArrayQueuePad3<E> extends MpscBlockingConsume
 // $gen:ordered-fields
 abstract class MpscBlockingConsumerArrayQueueConsumerFields<E> extends MpscBlockingConsumerArrayQueuePad3<E>
 {
-    private final static long C_INDEX_OFFSET = fieldOffset(MpscBlockingConsumerArrayQueueConsumerFields.class,"consumerIndex");
-    private final static long BLOCKED_OFFSET = fieldOffset(MpscBlockingConsumerArrayQueueConsumerFields.class,"blocked");
+    private final static VarHandle C_INDEX;
+    private final static VarHandle BLOCKED;
+
+    static {
+        try {
+            C_INDEX = MethodHandles.lookup().findVarHandle(MpscBlockingConsumerArrayQueueConsumerFields.class, "consumerIndex", long.class);
+            BLOCKED = MethodHandles.lookup().findVarHandle(MpscBlockingConsumerArrayQueueConsumerFields.class, "blocked", Thread.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long consumerIndex;
     protected final long consumerMask;
@@ -179,12 +204,12 @@ abstract class MpscBlockingConsumerArrayQueueConsumerFields<E> extends MpscBlock
 
     final long lpConsumerIndex()
     {
-        return UNSAFE.getLong(this, C_INDEX_OFFSET);
+        return (long) C_INDEX.get(this);
     }
 
     final void soConsumerIndex(long newValue)
     {
-        UNSAFE.putOrderedLong(this, C_INDEX_OFFSET, newValue);
+        C_INDEX.setRelease(this, newValue);
     }
 
     final Thread lvBlocked()
@@ -200,14 +225,14 @@ abstract class MpscBlockingConsumerArrayQueueConsumerFields<E> extends MpscBlock
      */
     final void soBlocked(Thread thread)
     {
-        UNSAFE.putOrderedObject(this, BLOCKED_OFFSET, thread);
+        BLOCKED.setRelease(this, thread);
     }
 }
 
 
 
 /**
- * This is a partial implementation of the {@link java.util.concurrent.BlockingQueue} on the consumer side only on top
+ * This is a partial implementation of the {@link BlockingQueue} on the consumer side only on top
  * of the mechanics described in {@link BaseMpscLinkedArrayQueue}, but with the reservation bit used for blocking rather
  * than resizing in this instance.
  */

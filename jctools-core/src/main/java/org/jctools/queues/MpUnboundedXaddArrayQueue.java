@@ -5,12 +5,12 @@ import org.jctools.util.PortableJvmInfo;
 import org.jctools.util.Pow2;
 import org.jctools.util.UnsafeAccess;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.AbstractQueue;
 import java.util.Iterator;
 
 import static org.jctools.queues.MpUnboundedXaddChunk.NOT_USED;
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
 
 abstract class MpUnboundedXaddArrayQueuePad1<E> extends AbstractQueue<E> implements IndexedQueue
 {
@@ -33,26 +33,30 @@ abstract class MpUnboundedXaddArrayQueuePad1<E> extends AbstractQueue<E> impleme
 }
 
 // $gen:ordered-fields
-abstract class MpUnboundedXaddArrayQueueProducerFields<E> extends MpUnboundedXaddArrayQueuePad1<E>
-{
-    private final static long P_INDEX_OFFSET =
-        fieldOffset(MpUnboundedXaddArrayQueueProducerFields.class, "producerIndex");
+abstract class MpUnboundedXaddArrayQueueProducerFields<E> extends MpUnboundedXaddArrayQueuePad1<E> {
+    private final static VarHandle P_INDEX_OFFSET;
+
+    static {
+        try {
+            P_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(MpUnboundedXaddArrayQueueProducerFields.class, "producerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private volatile long producerIndex;
 
     @Override
-    public final long lvProducerIndex()
-    {
+    public final long lvProducerIndex() {
         return producerIndex;
     }
 
-    final long getAndIncrementProducerIndex()
-    {
-        return UNSAFE.getAndAddLong(this, P_INDEX_OFFSET, 1);
+    final long getAndIncrementProducerIndex() {
+        return (long) P_INDEX_OFFSET.getAndAdd(this, 1);
     }
 
-    final long getAndAddProducerIndex(long delta)
-    {
-        return UNSAFE.getAndAddLong(this, P_INDEX_OFFSET, delta);
+    final long getAndAddProducerIndex(long delta) {
+        return (long) P_INDEX_OFFSET.getAndAdd(this, delta);
     }
 }
 
@@ -77,41 +81,50 @@ abstract class MpUnboundedXaddArrayQueuePad2<E> extends MpUnboundedXaddArrayQueu
 }
 
 // $gen:ordered-fields
-abstract class MpUnboundedXaddArrayQueueProducerChunk<R extends MpUnboundedXaddChunk<R,E>, E>
-    extends MpUnboundedXaddArrayQueuePad2<E>
-{
-    private static final long P_CHUNK_OFFSET =
-        fieldOffset(MpUnboundedXaddArrayQueueProducerChunk.class, "producerChunk");
-    private static final long P_CHUNK_INDEX_OFFSET =
-        fieldOffset(MpUnboundedXaddArrayQueueProducerChunk.class, "producerChunkIndex");
+abstract class MpUnboundedXaddArrayQueueProducerChunk<R extends MpUnboundedXaddChunk<R, E>, E>
+        extends MpUnboundedXaddArrayQueuePad2<E> {
+    private final static VarHandle P_CHUNK_OFFSET;
+
+    static {
+        try {
+            P_CHUNK_OFFSET = MethodHandles.lookup().findVarHandle(MpUnboundedXaddArrayQueueProducerChunk.class, "producerChunk", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private final static VarHandle P_CHUNK_INDEX_OFFSET;
+
+    static {
+        try {
+            P_CHUNK_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(MpUnboundedXaddArrayQueueProducerChunk.class, "producerChunkIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile R producerChunk;
     private volatile long producerChunkIndex;
 
 
-    final long lvProducerChunkIndex()
-    {
+    final long lvProducerChunkIndex() {
         return producerChunkIndex;
     }
 
-    final boolean casProducerChunkIndex(long expected, long value)
-    {
-        return UNSAFE.compareAndSwapLong(this, P_CHUNK_INDEX_OFFSET, expected, value);
+    final boolean casProducerChunkIndex(long expected, long value) {
+        return P_CHUNK_INDEX_OFFSET.compareAndSet(this, expected, value);
     }
 
-    final void soProducerChunkIndex(long value)
-    {
-        UNSAFE.putOrderedLong(this, P_CHUNK_INDEX_OFFSET, value);
+    final void soProducerChunkIndex(long value) {
+        P_CHUNK_INDEX_OFFSET.setRelease(this, value);
     }
 
-    final R lvProducerChunk()
-    {
+    final R lvProducerChunk() {
         return this.producerChunk;
     }
 
-    final void soProducerChunk(R chunk)
-    {
-        UNSAFE.putOrderedObject(this, P_CHUNK_OFFSET, chunk);
+    final void soProducerChunk(R chunk) {
+        P_CHUNK_OFFSET.setRelease(this, chunk);
     }
 }
 
@@ -140,48 +153,49 @@ abstract class MpUnboundedXaddArrayQueuePad3<R extends MpUnboundedXaddChunk<R,E>
 abstract class MpUnboundedXaddArrayQueueConsumerFields<R extends MpUnboundedXaddChunk<R, E>, E>
     extends MpUnboundedXaddArrayQueuePad3<R, E>
 {
-    private final static long C_INDEX_OFFSET =
-        fieldOffset(MpUnboundedXaddArrayQueueConsumerFields.class, "consumerIndex");
-    private final static long C_CHUNK_OFFSET =
-        fieldOffset(MpUnboundedXaddArrayQueueConsumerFields.class, "consumerChunk");
+    private final static VarHandle C_INDEX_OFFSET;
+    private final static VarHandle C_CHUNK_OFFSET;
+
+    static {
+        try {
+            C_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(MpUnboundedXaddArrayQueueConsumerFields.class, "consumerIndex", long.class);
+            C_CHUNK_OFFSET = MethodHandles.lookup().findVarHandle(MpUnboundedXaddArrayQueueConsumerFields.class, "consumerChunk", MpUnboundedXaddChunk.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long consumerIndex;
     private volatile R consumerChunk;
 
     @Override
-    public final long lvConsumerIndex()
-    {
+    public final long lvConsumerIndex() {
         return consumerIndex;
     }
 
-    final boolean casConsumerIndex(long expect, long newValue)
-    {
-        return UNSAFE.compareAndSwapLong(this, C_INDEX_OFFSET, expect, newValue);
+    final boolean casConsumerIndex(long expect, long newValue) {
+        return C_INDEX_OFFSET.compareAndSet(this, expect, newValue);
     }
 
-    final R lpConsumerChunk()
-    {
-        return (R) UNSAFE.getObject(this, C_CHUNK_OFFSET);
+    @SuppressWarnings("unchecked")
+    final R lpConsumerChunk() {
+        return (R) C_CHUNK_OFFSET.get(this);
     }
 
-    final R lvConsumerChunk()
-    {
+    final R lvConsumerChunk() {
         return this.consumerChunk;
     }
 
-    final void soConsumerChunk(R newValue)
-    {
-        UNSAFE.putOrderedObject(this, C_CHUNK_OFFSET, newValue);
+    final void soConsumerChunk(R newValue) {
+        C_CHUNK_OFFSET.setRelease(this, newValue);
     }
 
-    final long lpConsumerIndex()
-    {
-        return UNSAFE.getLong(this, C_INDEX_OFFSET);
+    final long lpConsumerIndex() {
+        return (long) C_INDEX_OFFSET.get(this);
     }
 
-    final void soConsumerIndex(long newValue)
-    {
-        UNSAFE.putOrderedLong(this, C_INDEX_OFFSET, newValue);
+    final void soConsumerIndex(long newValue) {
+        C_INDEX_OFFSET.setRelease(this, newValue);
     }
 }
 
