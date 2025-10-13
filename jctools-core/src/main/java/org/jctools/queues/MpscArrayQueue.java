@@ -13,8 +13,9 @@
  */
 package org.jctools.queues;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
 import static org.jctools.util.UnsafeRefArrayAccess.*;
 
 abstract class MpscArrayQueueL1Pad<E> extends ConcurrentCircularArrayQueue<E>
@@ -43,26 +44,30 @@ abstract class MpscArrayQueueL1Pad<E> extends ConcurrentCircularArrayQueue<E>
 }
 
 //$gen:ordered-fields
-abstract class MpscArrayQueueProducerIndexField<E> extends MpscArrayQueueL1Pad<E>
-{
-    private final static long P_INDEX_OFFSET = fieldOffset(MpscArrayQueueProducerIndexField.class, "producerIndex");
+abstract class MpscArrayQueueProducerIndexField<E> extends MpscArrayQueueL1Pad<E> {
+    private final static VarHandle P_INDEX_OFFSET;
+
+    static {
+        try {
+            P_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(MpscArrayQueueProducerIndexField.class, "producerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long producerIndex;
 
-    MpscArrayQueueProducerIndexField(int capacity)
-    {
+    MpscArrayQueueProducerIndexField(int capacity) {
         super(capacity);
     }
 
     @Override
-    public final long lvProducerIndex()
-    {
+    public final long lvProducerIndex() {
         return producerIndex;
     }
 
-    final boolean casProducerIndex(long expect, long newValue)
-    {
-        return UNSAFE.compareAndSwapLong(this, P_INDEX_OFFSET, expect, newValue);
+    final boolean casProducerIndex(long expect, long newValue) {
+        return P_INDEX_OFFSET.compareAndSet(this, expect, newValue);
     }
 }
 
@@ -92,27 +97,31 @@ abstract class MpscArrayQueueMidPad<E> extends MpscArrayQueueProducerIndexField<
 }
 
 //$gen:ordered-fields
-abstract class MpscArrayQueueProducerLimitField<E> extends MpscArrayQueueMidPad<E>
-{
-    private final static long P_LIMIT_OFFSET = fieldOffset(MpscArrayQueueProducerLimitField.class, "producerLimit");
+abstract class MpscArrayQueueProducerLimitField<E> extends MpscArrayQueueMidPad<E> {
+    private final static VarHandle P_LIMIT_OFFSET;
+
+    static {
+        try {
+            P_LIMIT_OFFSET = MethodHandles.lookup().findVarHandle(MpscArrayQueueProducerLimitField.class, "producerLimit", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     // First unavailable index the producer may claim up to before rereading the consumer index
     private volatile long producerLimit;
 
-    MpscArrayQueueProducerLimitField(int capacity)
-    {
+    MpscArrayQueueProducerLimitField(int capacity) {
         super(capacity);
         this.producerLimit = capacity;
     }
 
-    final long lvProducerLimit()
-    {
+    final long lvProducerLimit() {
         return producerLimit;
     }
 
-    final void soProducerLimit(long newValue)
-    {
-        UNSAFE.putOrderedLong(this, P_LIMIT_OFFSET, newValue);
+    final void soProducerLimit(long newValue) {
+        P_LIMIT_OFFSET.setRelease(this, newValue);
     }
 }
 
@@ -142,31 +151,34 @@ abstract class MpscArrayQueueL2Pad<E> extends MpscArrayQueueProducerLimitField<E
 }
 
 //$gen:ordered-fields
-abstract class MpscArrayQueueConsumerIndexField<E> extends MpscArrayQueueL2Pad<E>
-{
-    private final static long C_INDEX_OFFSET = fieldOffset(MpscArrayQueueConsumerIndexField.class, "consumerIndex");
+abstract class MpscArrayQueueConsumerIndexField<E> extends MpscArrayQueueL2Pad<E> {
+    private final static VarHandle C_INDEX_OFFSET;
+
+    static {
+        try {
+            C_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(MpscArrayQueueConsumerIndexField.class, "consumerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long consumerIndex;
 
-    MpscArrayQueueConsumerIndexField(int capacity)
-    {
+    MpscArrayQueueConsumerIndexField(int capacity) {
         super(capacity);
     }
 
     @Override
-    public final long lvConsumerIndex()
-    {
+    public final long lvConsumerIndex() {
         return consumerIndex;
     }
 
-    final long lpConsumerIndex()
-    {
-        return UNSAFE.getLong(this, C_INDEX_OFFSET);
+    final long lpConsumerIndex() {
+        return (long) C_INDEX_OFFSET.get(this);
     }
 
-    final void soConsumerIndex(long newValue)
-    {
-        UNSAFE.putOrderedLong(this, C_INDEX_OFFSET, newValue);
+    final void soConsumerIndex(long newValue) {
+        C_INDEX_OFFSET.setRelease(this, newValue);
     }
 }
 

@@ -13,8 +13,8 @@
  */
 package org.jctools.queues.unpadded;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import static org.jctools.util.UnsafeRefArrayAccess.*;
 import org.jctools.queues.*;
 
@@ -35,7 +35,15 @@ abstract class MpscUnpaddedArrayQueueL1Pad<E> extends ConcurrentCircularUnpadded
  */
 abstract class MpscUnpaddedArrayQueueProducerIndexField<E> extends MpscUnpaddedArrayQueueL1Pad<E> {
 
-    private final static long P_INDEX_OFFSET = fieldOffset(MpscUnpaddedArrayQueueProducerIndexField.class, "producerIndex");
+    private final static VarHandle P_INDEX_OFFSET;
+
+    static {
+        try {
+            P_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(MpscUnpaddedArrayQueueProducerIndexField.class, "producerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long producerIndex;
 
@@ -49,7 +57,7 @@ abstract class MpscUnpaddedArrayQueueProducerIndexField<E> extends MpscUnpaddedA
     }
 
     final boolean casProducerIndex(long expect, long newValue) {
-        return UNSAFE.compareAndSwapLong(this, P_INDEX_OFFSET, expect, newValue);
+        return P_INDEX_OFFSET.compareAndSet(this, expect, newValue);
     }
 }
 
@@ -70,7 +78,15 @@ abstract class MpscUnpaddedArrayQueueMidPad<E> extends MpscUnpaddedArrayQueuePro
  */
 abstract class MpscUnpaddedArrayQueueProducerLimitField<E> extends MpscUnpaddedArrayQueueMidPad<E> {
 
-    private final static long P_LIMIT_OFFSET = fieldOffset(MpscUnpaddedArrayQueueProducerLimitField.class, "producerLimit");
+    private final static VarHandle P_LIMIT_OFFSET;
+
+    static {
+        try {
+            P_LIMIT_OFFSET = MethodHandles.lookup().findVarHandle(MpscUnpaddedArrayQueueProducerLimitField.class, "producerLimit", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     // First unavailable index the producer may claim up to before rereading the consumer index
     private volatile long producerLimit;
@@ -85,7 +101,7 @@ abstract class MpscUnpaddedArrayQueueProducerLimitField<E> extends MpscUnpaddedA
     }
 
     final void soProducerLimit(long newValue) {
-        UNSAFE.putOrderedLong(this, P_LIMIT_OFFSET, newValue);
+        P_LIMIT_OFFSET.setRelease(this, newValue);
     }
 }
 
@@ -106,7 +122,15 @@ abstract class MpscUnpaddedArrayQueueL2Pad<E> extends MpscUnpaddedArrayQueueProd
  */
 abstract class MpscUnpaddedArrayQueueConsumerIndexField<E> extends MpscUnpaddedArrayQueueL2Pad<E> {
 
-    private final static long C_INDEX_OFFSET = fieldOffset(MpscUnpaddedArrayQueueConsumerIndexField.class, "consumerIndex");
+    private final static VarHandle C_INDEX_OFFSET;
+
+    static {
+        try {
+            C_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(MpscUnpaddedArrayQueueConsumerIndexField.class, "consumerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long consumerIndex;
 
@@ -120,11 +144,11 @@ abstract class MpscUnpaddedArrayQueueConsumerIndexField<E> extends MpscUnpaddedA
     }
 
     final long lpConsumerIndex() {
-        return UNSAFE.getLong(this, C_INDEX_OFFSET);
+        return (long) C_INDEX_OFFSET.get(this);
     }
 
     final void soConsumerIndex(long newValue) {
-        UNSAFE.putOrderedLong(this, C_INDEX_OFFSET, newValue);
+        C_INDEX_OFFSET.setRelease(this, newValue);
     }
 }
 

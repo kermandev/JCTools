@@ -13,31 +13,13 @@
  */
 package org.jctools.util;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 @InternalAPI
 public final class UnsafeRefArrayAccess
 {
-    public static final long REF_ARRAY_BASE;
-    public static final int REF_ELEMENT_SHIFT;
-
-    static
-    {
-        final int scale = UnsafeAccess.UNSAFE.arrayIndexScale(Object[].class);
-        if (4 == scale)
-        {
-            REF_ELEMENT_SHIFT = 2;
-        }
-        else if (8 == scale)
-        {
-            REF_ELEMENT_SHIFT = 3;
-        }
-        else
-        {
-            throw new IllegalStateException("Unknown pointer size: " + scale);
-        }
-        REF_ARRAY_BASE = UnsafeAccess.UNSAFE.arrayBaseOffset(Object[].class);
-    }
+    private final static VarHandle OBJECT_A = MethodHandles.arrayElementVarHandle(Object[].class);
 
     /**
      * A plain store (no ordering/fences) of an element to a given offset
@@ -48,7 +30,8 @@ public final class UnsafeRefArrayAccess
      */
     public static <E> void spRefElement(E[] buffer, long offset, E e)
     {
-        UNSAFE.putObject(buffer, offset, e);
+        assert (int) offset == offset: "mismatch while migrating";
+        OBJECT_A.set(buffer, (int) offset, e);
     }
 
     /**
@@ -60,7 +43,8 @@ public final class UnsafeRefArrayAccess
      */
     public static <E> void soRefElement(E[] buffer, long offset, E e)
     {
-        UNSAFE.putOrderedObject(buffer, offset, e);
+        assert (int) offset == offset: "mismatch while migrating";
+        OBJECT_A.setRelease(buffer, (int) offset, e);
     }
 
     /**
@@ -73,7 +57,8 @@ public final class UnsafeRefArrayAccess
     @SuppressWarnings("unchecked")
     public static <E> E lpRefElement(E[] buffer, long offset)
     {
-        return (E) UNSAFE.getObject(buffer, offset);
+        assert (int) offset == offset: "mismatch while migrating";
+        return (E) OBJECT_A.get(buffer, (int) offset);
     }
 
     /**
@@ -86,16 +71,32 @@ public final class UnsafeRefArrayAccess
     @SuppressWarnings("unchecked")
     public static <E> E lvRefElement(E[] buffer, long offset)
     {
-        return (E) UNSAFE.getObjectVolatile(buffer, offset);
+        assert (int) offset == offset: "mismatch while migrating";
+        return (E) OBJECT_A.getVolatile(buffer, (int) offset);
+    }
+
+
+    /**
+     * A compare and set of element
+     * @param buffer this.buffer
+     * @param offset computed via {@link UnsafeRefArrayAccess#calcRefElementOffset(long)}
+     * @param expectedValue the old
+     * @param newValue the new
+     * @return true if successful
+     */
+    public static <E> boolean casRefElement(E[] buffer, long offset, E expectedValue, E newValue) {
+        assert (int) offset == offset: "mismatch while migrating";
+        return OBJECT_A.compareAndSet(buffer, (int) offset, expectedValue, newValue);
     }
 
     /**
      * @param index desirable element index
      * @return the offset in bytes within the array for a given index
      */
-    public static long calcRefElementOffset(long index)
+    public static int calcRefElementOffset(long index)
     {
-        return REF_ARRAY_BASE + (index << REF_ELEMENT_SHIFT);
+        assert (int) index == index: "mismatch while migrating";
+        return (int) index;
     }
 
     /**
@@ -107,7 +108,8 @@ public final class UnsafeRefArrayAccess
      */
     public static long calcCircularRefElementOffset(long index, long mask)
     {
-        return REF_ARRAY_BASE + ((index & mask) << REF_ELEMENT_SHIFT);
+        assert (int) index == index: "mismatch while migrating";
+        return (index & mask);
     }
 
     /**

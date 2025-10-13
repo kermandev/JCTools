@@ -13,7 +13,6 @@
  */
 package org.jctools.queues.atomic;
 
-import java.util.Queue;
 import java.util.concurrent.atomic.*;
 import org.jctools.queues.*;
 import static org.jctools.queues.atomic.AtomicQueueUtil.*;

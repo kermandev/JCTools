@@ -18,14 +18,14 @@ import org.jctools.util.PortableJvmInfo;
 import org.jctools.util.Pow2;
 import org.jctools.util.RangeUtil;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.AbstractQueue;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import static org.jctools.queues.LinkedArrayQueueUtil.length;
 import static org.jctools.queues.LinkedArrayQueueUtil.modifiedCalcCircularRefElementOffset;
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
 import static org.jctools.util.UnsafeRefArrayAccess.*;
 
 
@@ -50,26 +50,30 @@ abstract class BaseMpscLinkedArrayQueuePad1<E> extends AbstractQueue<E> implemen
 }
 
 // $gen:ordered-fields
-abstract class BaseMpscLinkedArrayQueueProducerFields<E> extends BaseMpscLinkedArrayQueuePad1<E>
-{
-    private final static long P_INDEX_OFFSET = fieldOffset(BaseMpscLinkedArrayQueueProducerFields.class, "producerIndex");
+abstract class BaseMpscLinkedArrayQueueProducerFields<E> extends BaseMpscLinkedArrayQueuePad1<E> {
+    private final static VarHandle P_INDEX_OFFSET;
+
+    static {
+        try {
+            P_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(BaseMpscLinkedArrayQueueProducerFields.class, "producerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long producerIndex;
 
     @Override
-    public final long lvProducerIndex()
-    {
+    public final long lvProducerIndex() {
         return producerIndex;
     }
 
-    final void soProducerIndex(long newValue)
-    {
-        UNSAFE.putOrderedLong(this, P_INDEX_OFFSET, newValue);
+    final void soProducerIndex(long newValue) {
+        P_INDEX_OFFSET.setRelease(this, newValue);
     }
 
-    final boolean casProducerIndex(long expect, long newValue)
-    {
-        return UNSAFE.compareAndSwapLong(this, P_INDEX_OFFSET, expect, newValue);
+    final boolean casProducerIndex(long expect, long newValue) {
+        return P_INDEX_OFFSET.compareAndSet(this, expect, newValue);
     }
 }
 
@@ -94,28 +98,32 @@ abstract class BaseMpscLinkedArrayQueuePad2<E> extends BaseMpscLinkedArrayQueueP
 }
 
 // $gen:ordered-fields
-abstract class BaseMpscLinkedArrayQueueConsumerFields<E> extends BaseMpscLinkedArrayQueuePad2<E>
-{
-    private final static long C_INDEX_OFFSET = fieldOffset(BaseMpscLinkedArrayQueueConsumerFields.class,"consumerIndex");
+abstract class BaseMpscLinkedArrayQueueConsumerFields<E> extends BaseMpscLinkedArrayQueuePad2<E> {
+    private final static VarHandle C_INDEX_OFFSET;
+
+    static {
+        try {
+            C_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(BaseMpscLinkedArrayQueueConsumerFields.class, "consumerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long consumerIndex;
     protected long consumerMask;
     protected E[] consumerBuffer;
 
     @Override
-    public final long lvConsumerIndex()
-    {
+    public final long lvConsumerIndex() {
         return consumerIndex;
     }
 
-    final long lpConsumerIndex()
-    {
-        return UNSAFE.getLong(this, C_INDEX_OFFSET);
+    final long lpConsumerIndex() {
+        return (long) C_INDEX_OFFSET.get(this);
     }
 
-    final void soConsumerIndex(long newValue)
-    {
-        UNSAFE.putOrderedLong(this, C_INDEX_OFFSET, newValue);
+    final void soConsumerIndex(long newValue) {
+        C_INDEX_OFFSET.setRelease(this, newValue);
     }
 }
 
@@ -140,27 +148,31 @@ abstract class BaseMpscLinkedArrayQueuePad3<E> extends BaseMpscLinkedArrayQueueC
 }
 
 // $gen:ordered-fields
-abstract class BaseMpscLinkedArrayQueueColdProducerFields<E> extends BaseMpscLinkedArrayQueuePad3<E>
-{
-    private final static long P_LIMIT_OFFSET = fieldOffset(BaseMpscLinkedArrayQueueColdProducerFields.class,"producerLimit");
+abstract class BaseMpscLinkedArrayQueueColdProducerFields<E> extends BaseMpscLinkedArrayQueuePad3<E> {
+    private final static VarHandle P_LIMIT_OFFSET;
+
+    static {
+        try {
+            P_LIMIT_OFFSET = MethodHandles.lookup().findVarHandle(BaseMpscLinkedArrayQueueColdProducerFields.class, "producerLimit", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long producerLimit;
     protected long producerMask;
     protected E[] producerBuffer;
 
-    final long lvProducerLimit()
-    {
+    final long lvProducerLimit() {
         return producerLimit;
     }
 
-    final boolean casProducerLimit(long expect, long newValue)
-    {
-        return UNSAFE.compareAndSwapLong(this, P_LIMIT_OFFSET, expect, newValue);
+    final boolean casProducerLimit(long expect, long newValue) {
+        return P_LIMIT_OFFSET.compareAndSet(this, expect, newValue);
     }
 
-    final void soProducerLimit(long newValue)
-    {
-        UNSAFE.putOrderedLong(this, P_LIMIT_OFFSET, newValue);
+    final void soProducerLimit(long newValue) {
+        P_LIMIT_OFFSET.setRelease(this, newValue);
     }
 }
 

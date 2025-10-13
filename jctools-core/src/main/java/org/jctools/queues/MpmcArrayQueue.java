@@ -15,8 +15,9 @@ package org.jctools.queues;
 
 import org.jctools.util.RangeUtil;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
 import static org.jctools.util.UnsafeLongArrayAccess.*;
 import static org.jctools.util.UnsafeRefArrayAccess.*;
 
@@ -48,7 +49,15 @@ abstract class MpmcArrayQueueL1Pad<E> extends ConcurrentSequencedCircularArrayQu
 //$gen:ordered-fields
 abstract class MpmcArrayQueueProducerIndexField<E> extends MpmcArrayQueueL1Pad<E>
 {
-    private final static long P_INDEX_OFFSET = fieldOffset(MpmcArrayQueueProducerIndexField.class, "producerIndex");
+     private final static VarHandle P_INDEX_OFFSET;
+
+    static {
+        try {
+            P_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(MpmcArrayQueueProducerIndexField.class, "producerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long producerIndex;
 
@@ -65,7 +74,7 @@ abstract class MpmcArrayQueueProducerIndexField<E> extends MpmcArrayQueueL1Pad<E
 
     final boolean casProducerIndex(long expect, long newValue)
     {
-        return UNSAFE.compareAndSwapLong(this, P_INDEX_OFFSET, expect, newValue);
+        return P_INDEX_OFFSET.compareAndSet(this, expect, newValue);
     }
 }
 
@@ -95,26 +104,30 @@ abstract class MpmcArrayQueueL2Pad<E> extends MpmcArrayQueueProducerIndexField<E
 }
 
 //$gen:ordered-fields
-abstract class MpmcArrayQueueConsumerIndexField<E> extends MpmcArrayQueueL2Pad<E>
-{
-    private final static long C_INDEX_OFFSET = fieldOffset(MpmcArrayQueueConsumerIndexField.class, "consumerIndex");
+abstract class MpmcArrayQueueConsumerIndexField<E> extends MpmcArrayQueueL2Pad<E> {
+    private final static VarHandle C_INDEX_OFFSET;
+
+    static {
+        try {
+            C_INDEX_OFFSET = MethodHandles.lookup().findVarHandle(MpmcArrayQueueConsumerIndexField.class, "consumerIndex", long.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile long consumerIndex;
 
-    MpmcArrayQueueConsumerIndexField(int capacity)
-    {
+    MpmcArrayQueueConsumerIndexField(int capacity) {
         super(capacity);
     }
 
     @Override
-    public final long lvConsumerIndex()
-    {
+    public final long lvConsumerIndex() {
         return consumerIndex;
     }
 
-    final boolean casConsumerIndex(long expect, long newValue)
-    {
-        return UNSAFE.compareAndSwapLong(this, C_INDEX_OFFSET, expect, newValue);
+    final boolean casConsumerIndex(long expect, long newValue) {
+        return C_INDEX_OFFSET.compareAndSet(this, expect, newValue);
     }
 }
 

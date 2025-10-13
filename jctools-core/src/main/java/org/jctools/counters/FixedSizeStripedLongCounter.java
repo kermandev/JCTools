@@ -1,11 +1,12 @@
 package org.jctools.counters;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.jctools.util.PortableJvmInfo;
 import org.jctools.util.Pow2;
+import org.jctools.util.UnsafeLongArrayAccess;
 
 /**
  * Basic class representing static striped long counter with
@@ -32,11 +33,7 @@ abstract class FixedSizeStripedLongCounterPrePad {
     // byte b170,b171,b172,b173,b174,b175,b176,b177;//128b
 }
 abstract class FixedSizeStripedLongCounterFields extends FixedSizeStripedLongCounterPrePad {
-    protected static final int CACHE_LINE_IN_LONGS = PortableJvmInfo.CACHE_LINE_SIZE / 8;
-    // place first element at the end of the cache line of the array object
-    protected static final long COUNTER_ARRAY_BASE = Math.max(UNSAFE.arrayBaseOffset(long[].class), PortableJvmInfo.CACHE_LINE_SIZE - 8);
-    // element shift is enlarged to include the padding, still aligned to long
-    protected static final long ELEMENT_SHIFT = Integer.numberOfTrailingZeros(PortableJvmInfo.CACHE_LINE_SIZE);
+    protected static final int CACHE_LINE_IN_LONGS = PortableJvmInfo.CACHE_LINE_SIZE / Long.BYTES;
 
     // we pad each element in the array to effectively write a counter in each cache line
     protected final long[] cells;
@@ -69,14 +66,14 @@ public abstract class FixedSizeStripedLongCounter extends FixedSizeStripedLongCo
     byte b160,b161,b162,b163,b164,b165,b166,b167;//120b
     //byte b170,b171,b172,b173,b174,b175,b176,b177;//128b
 
-    private static final long PROBE = getProbeOffset();
+    private static final VarHandle PROBE = getProbeOffset();
 
-    private static long getProbeOffset() {
+    private static VarHandle getProbeOffset() {
         try {
-            return UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("threadLocalRandomProbe"));
-
-        } catch (NoSuchFieldException e) {
-            return -1L;
+            // Requires opens for java.base
+            return MethodHandles.lookup().findVarHandle(Thread.class, "threadLocalRandomProbe", int.class);
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -100,13 +97,13 @@ public abstract class FixedSizeStripedLongCounter extends FixedSizeStripedLongCo
         long[] cells = this.cells;
         int length = mask + 1;
         for (int i = 0; i < length; i++) {
-            result += UNSAFE.getLongVolatile(cells, counterOffset(i));
+            result += (long) UnsafeLongArrayAccess.lvLongElement(cells, counterOffset(i));
         }
         return result;
     }
 
-    private long counterOffset(long i) {
-        return COUNTER_ARRAY_BASE + (i << ELEMENT_SHIFT);
+    private int counterOffset(int i) {
+        return i * CACHE_LINE_IN_LONGS;
     }
 
     @Override
@@ -138,11 +135,11 @@ public abstract class FixedSizeStripedLongCounter extends FixedSizeStripedLongCo
         // Fast path for reliable well-distributed probe, available from JDK 7+.
         // As long as PROBE is final static this branch will be constant folded
         // (i.e removed).
-        if (PROBE != -1) {
+        if (PROBE != null) {
             int probe;
-            if ((probe = UNSAFE.getInt(Thread.currentThread(), PROBE)) == 0) {
+            if ((probe = (int) PROBE.get(Thread.currentThread())) == 0) {
                 ThreadLocalRandom.current(); // force initialization
-                probe = UNSAFE.getInt(Thread.currentThread(), PROBE);
+                probe = (int) PROBE.get(Thread.currentThread());
             }
             return probe;
         }

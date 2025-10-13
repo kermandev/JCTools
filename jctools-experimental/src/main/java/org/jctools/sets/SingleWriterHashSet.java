@@ -311,7 +311,7 @@ public class SingleWriterHashSet<E> extends AbstractSet<E> {
     private final static long MC_OFFSET = fieldOffset(SingleWriterHashSet.class, "modCount");
 
     private void soBuffer(final E[] buffer) {
-        UNSAFE.putOrderedObject(this, BUFFER_OFFSET, buffer);
+        UNSAFE.putOrderedLong(this, BUFFER_OFFSET, buffer);
     }
 
     @SuppressWarnings("unchecked")

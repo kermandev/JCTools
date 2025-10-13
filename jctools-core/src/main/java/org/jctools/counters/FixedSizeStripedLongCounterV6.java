@@ -1,6 +1,6 @@
 package org.jctools.counters;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
+import org.jctools.util.UnsafeLongArrayAccess;
 
 /**
  * Lock-free implementation of striped counter using
@@ -18,16 +18,16 @@ class FixedSizeStripedLongCounterV6 extends FixedSizeStripedLongCounter {
     protected void inc(long[] cells, long offset, long delta) {
         long v;
         do {
-            v = UNSAFE.getLongVolatile(cells, offset);
-        } while (!UNSAFE.compareAndSwapLong(cells, offset, v, v + delta));
+            v = (long) UnsafeLongArrayAccess.lvLongElement(cells, offset);
+        } while (!UnsafeLongArrayAccess.casLongElement(cells, offset, v, v + delta));
     }
 
     @Override
     protected long getAndReset(long[] cells, long offset) {
         long v;
         do {
-            v = UNSAFE.getLongVolatile(cells, offset);
-        } while (!UNSAFE.compareAndSwapLong(cells, offset, v, 0L));
+            v = (long) UnsafeLongArrayAccess.lvLongElement(cells, offset);
+        } while (!UnsafeLongArrayAccess.casLongElement(cells, offset, v, 0L));
 
         return v;
     }

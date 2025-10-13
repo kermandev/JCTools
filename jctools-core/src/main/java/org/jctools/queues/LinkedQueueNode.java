@@ -15,24 +15,29 @@ package org.jctools.queues;
 
 import org.jctools.util.InternalAPI;
 
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 @InternalAPI
-public final class LinkedQueueNode<E>
-{
-    private final static long NEXT_OFFSET = fieldOffset(LinkedQueueNode.class,"next");
+public final class LinkedQueueNode<E> {
+    private final static VarHandle NEXT_OFFSET;
+
+    static {
+        try {
+            NEXT_OFFSET = MethodHandles.lookup().findVarHandle(LinkedQueueNode.class, "next", LinkedQueueNode.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private E value;
     private volatile LinkedQueueNode<E> next;
 
-    public LinkedQueueNode()
-    {
+    public LinkedQueueNode() {
         this(null);
     }
 
-    public LinkedQueueNode(E val)
-    {
+    public LinkedQueueNode(E val) {
         spValue(val);
     }
 
@@ -41,35 +46,29 @@ public final class LinkedQueueNode<E>
      *
      * @return value
      */
-    public E getAndNullValue()
-    {
+    public E getAndNullValue() {
         E temp = lpValue();
         spValue(null);
         return temp;
     }
 
-    public E lpValue()
-    {
+    public E lpValue() {
         return value;
     }
 
-    public void spValue(E newValue)
-    {
+    public void spValue(E newValue) {
         value = newValue;
     }
 
-    public void soNext(LinkedQueueNode<E> n)
-    {
-        UNSAFE.putOrderedObject(this, NEXT_OFFSET, n);
+    public void soNext(LinkedQueueNode<E> n) {
+        NEXT_OFFSET.setRelease(this, n);
     }
 
-    public void spNext(LinkedQueueNode<E> n)
-    {
-        UNSAFE.putObject(this, NEXT_OFFSET, n);
+    public void spNext(LinkedQueueNode<E> n) {
+        NEXT_OFFSET.set(this, n);
     }
 
-    public LinkedQueueNode<E> lvNext()
-    {
+    public LinkedQueueNode<E> lvNext() {
         return next;
     }
 }

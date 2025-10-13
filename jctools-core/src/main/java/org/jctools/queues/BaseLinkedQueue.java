@@ -13,12 +13,11 @@
  */
 package org.jctools.queues;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.AbstractQueue;
 import java.util.Iterator;
 import java.util.Queue;
-
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-import static org.jctools.util.UnsafeAccess.fieldOffset;
 
 abstract class BaseLinkedQueuePad0<E> extends AbstractQueue<E> implements MessagePassingQueue<E>
 {
@@ -44,18 +43,26 @@ abstract class BaseLinkedQueuePad0<E> extends AbstractQueue<E> implements Messag
 // $gen:ordered-fields
 abstract class BaseLinkedQueueProducerNodeRef<E> extends BaseLinkedQueuePad0<E>
 {
-    final static long P_NODE_OFFSET = fieldOffset(BaseLinkedQueueProducerNodeRef.class, "producerNode");
+    final static VarHandle P_NODE_OFFSET;
+
+    static {
+        try {
+            P_NODE_OFFSET = MethodHandles.lookup().findVarHandle(BaseLinkedQueueProducerNodeRef.class, "producerNode", LinkedQueueNode.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private volatile LinkedQueueNode<E> producerNode;
 
     final void spProducerNode(LinkedQueueNode<E> newValue)
     {
-        UNSAFE.putObject(this, P_NODE_OFFSET, newValue);
+        P_NODE_OFFSET.set(this, newValue);
     }
 
     final void soProducerNode(LinkedQueueNode<E> newValue)
     {
-        UNSAFE.putOrderedObject(this, P_NODE_OFFSET, newValue);
+        P_NODE_OFFSET.setRelease(this, newValue);
     }
 
     final LinkedQueueNode<E> lvProducerNode()
@@ -65,7 +72,7 @@ abstract class BaseLinkedQueueProducerNodeRef<E> extends BaseLinkedQueuePad0<E>
 
     final boolean casProducerNode(LinkedQueueNode<E> expect, LinkedQueueNode<E> newValue)
     {
-        return UNSAFE.compareAndSwapObject(this, P_NODE_OFFSET, expect, newValue);
+        return P_NODE_OFFSET.compareAndSet(this, expect, newValue);
     }
 
     final LinkedQueueNode<E> lpProducerNode()
@@ -97,7 +104,15 @@ abstract class BaseLinkedQueuePad1<E> extends BaseLinkedQueueProducerNodeRef<E>
 //$gen:ordered-fields
 abstract class BaseLinkedQueueConsumerNodeRef<E> extends BaseLinkedQueuePad1<E>
 {
-    private final static long C_NODE_OFFSET = fieldOffset(BaseLinkedQueueConsumerNodeRef.class,"consumerNode");
+    private final static VarHandle C_NODE;
+
+    static {
+        try {
+            C_NODE = MethodHandles.lookup().findVarHandle(BaseLinkedQueueConsumerNodeRef.class, "consumerNode", LinkedQueueNode.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private LinkedQueueNode<E> consumerNode;
 
@@ -109,7 +124,7 @@ abstract class BaseLinkedQueueConsumerNodeRef<E> extends BaseLinkedQueuePad1<E>
     @SuppressWarnings("unchecked")
     final LinkedQueueNode<E> lvConsumerNode()
     {
-        return (LinkedQueueNode<E>) UNSAFE.getObjectVolatile(this, C_NODE_OFFSET);
+        return (LinkedQueueNode<E>) C_NODE.getVolatile(this);
     }
 
     final LinkedQueueNode<E> lpConsumerNode()

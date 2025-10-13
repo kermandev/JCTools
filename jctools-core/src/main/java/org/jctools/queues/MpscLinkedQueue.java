@@ -13,12 +13,6 @@
  */
 package org.jctools.queues;
 
-import org.jctools.util.UnsafeAccess;
-
-import java.util.Queue;
-
-import static org.jctools.util.UnsafeAccess.UNSAFE;
-
 /**
  * This is a Java port of the MPSC algorithm as presented
  * <a href="http://www.1024cores.net/home/lock-free-algorithms/queues/non-intrusive-mpsc-node-based-queue"> on
@@ -165,22 +159,10 @@ public class MpscLinkedQueue<E> extends BaseLinkedQueue<E>
     }
 
     // $gen:ignore
+    @SuppressWarnings("unchecked")
     private LinkedQueueNode<E> xchgProducerNode(LinkedQueueNode<E> newVal)
     {
-        if (UnsafeAccess.SUPPORTS_GET_AND_SET_REF)
-        {
-            return (LinkedQueueNode<E>) UNSAFE.getAndSetObject(this, P_NODE_OFFSET, newVal);
-        }
-        else
-        {
-            LinkedQueueNode<E> oldVal;
-            do
-            {
-                oldVal = lvProducerNode();
-            }
-            while (!UNSAFE.compareAndSwapObject(this, P_NODE_OFFSET, oldVal, newVal));
-            return oldVal;
-        }
+        return (LinkedQueueNode<E>) P_NODE_OFFSET.getAndSet(this, newVal);
     }
 
     private LinkedQueueNode<E> getNextConsumerNode(LinkedQueueNode<E> currConsumerNode)
