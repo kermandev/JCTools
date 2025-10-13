@@ -72,7 +72,7 @@ public abstract class ConcurrentCircularArray<E> extends ConcurrentCircularArray
     }
 
     protected final void soElement(long offset, E e) {
-        UNSAFE.setRelease(buffer, offset, e);
+        UNSAFE.putOrderedObject(buffer, offset, e);
     }
 
     protected final void svElement(long offset, E e) {
@@ -94,7 +94,7 @@ public abstract class ConcurrentCircularArray<E> extends ConcurrentCircularArray
     }
 
     protected final void soElement(E[] buffer, long offset, E e) {
-        UNSAFE.setRelease(buffer, offset, e);
+        UNSAFE.putOrderedObject(buffer, offset, e);
     }
 
     protected final void svElement(E[] buffer, long offset, E e) {

@@ -205,7 +205,7 @@ public abstract class OffHeapFixedMessageSizeRingBuffer extends ProxyChannelRing
     }
 
     protected final void soConsumerIndex(final long value) {
-        UNSAFE.setRelease(null, consumerIndexAddress, value);
+        UNSAFE.putOrderedLong(null, consumerIndexAddress, value);
     }
 
     protected final long lpProducerIndex() {
@@ -217,7 +217,7 @@ public abstract class OffHeapFixedMessageSizeRingBuffer extends ProxyChannelRing
     }
 
     protected final void soProducerIndex(final long value) {
-        UNSAFE.setRelease(null, producerIndexAddress, value);
+        UNSAFE.putOrderedLong(null, producerIndexAddress, value);
     }
 
     protected final long arrayIndexForCursor(long currentHead) {

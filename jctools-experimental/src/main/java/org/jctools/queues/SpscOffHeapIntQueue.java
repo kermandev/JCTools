@@ -193,7 +193,7 @@ public final class SpscOffHeapIntQueue extends AbstractQueue<Integer> {
 	}
 
 	private void setHead(final long value) {
-		UnsafeAccess.UNSAFE.setRelease(null, headAddress, value);
+		UnsafeAccess.UNSAFE.putOrderedLong(null, headAddress, value);
 	}
 
 	private long getTailPlain() {
@@ -204,7 +204,7 @@ public final class SpscOffHeapIntQueue extends AbstractQueue<Integer> {
 	}
 
 	private void setTail(final long value) {
-		UnsafeAccess.UNSAFE.setRelease(null, tailAddress, value);
+		UnsafeAccess.UNSAFE.putOrderedLong(null, tailAddress, value);
 	}
 
 	private long getHeadCache() {

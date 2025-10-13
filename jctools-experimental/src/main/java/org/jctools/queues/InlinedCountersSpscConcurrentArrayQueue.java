@@ -175,7 +175,7 @@ public final class InlinedCountersSpscConcurrentArrayQueue<E> extends InlinedRin
     }
 
     private void headLazySet(long v) {
-        UNSAFE.setRelease(this, HEAD_OFFSET, v);
+        UNSAFE.putOrderedLong(this, HEAD_OFFSET, v);
     }
 
     private long getHead() {
@@ -183,7 +183,7 @@ public final class InlinedCountersSpscConcurrentArrayQueue<E> extends InlinedRin
     }
 
     private void tailLazySet(long v) {
-        UNSAFE.setRelease(this, TAIL_OFFSET, v);
+        UNSAFE.putOrderedLong(this, TAIL_OFFSET, v);
     }
 
     private long getTail() {

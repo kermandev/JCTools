@@ -100,7 +100,7 @@ abstract class MpscSequencedArrayQueueConsumerField<E> extends MpscSequencedArra
         return consumerIndex;
     }
     protected final void soConsumerIndex(long v) {
-        UNSAFE.setRelease(this, C_INDEX_OFFSET, v);
+        UNSAFE.putOrderedLong(this, C_INDEX_OFFSET, v);
     }
 
 }
