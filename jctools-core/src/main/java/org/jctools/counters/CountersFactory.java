@@ -1,7 +1,5 @@
 package org.jctools.counters;
 
-import org.jctools.util.UnsafeAccess;
-
 /**
  * @author Tolstopyatov Vsevolod
  */

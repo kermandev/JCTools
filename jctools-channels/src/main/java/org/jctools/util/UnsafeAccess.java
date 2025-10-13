@@ -35,9 +35,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 @InternalAPI
 public class UnsafeAccess
 {
-    public static final boolean SUPPORTS_GET_AND_SET_REF = true;
-    public static final boolean SUPPORTS_GET_AND_ADD_LONG = true;
-    private static final Unsafe UNSAFE;
+    public static final Unsafe UNSAFE;
 
     static
     {

@@ -3,7 +3,6 @@ package org.jctools.queues;
 import org.jctools.queues.IndexedQueueSizeUtil.IndexedQueue;
 import org.jctools.util.PortableJvmInfo;
 import org.jctools.util.Pow2;
-import org.jctools.util.UnsafeAccess;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
